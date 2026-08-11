@@ -1,0 +1,321 @@
+<script>
+/**
+ * ============================================================================
+ * LETTERCORE - UI HELPER (Performance Edition)
+ * ============================================================================
+ */
+var UIHelper = (function () {
+  'use strict';
+  function callApi(serverFunctionName, args, onSuccess, onError, silent) {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      if (typeof onError === 'function') onError('Environment context error.');
+      return;
+    }
+    var runner = google.script.run
+      .withSuccessHandler(function (response) {
+        if (response && (response.success === true || response.status === 'success')) {
+          var payloadData = (response.data !== undefined) ? response.data : response;
+          if (typeof onSuccess === 'function') onSuccess(payloadData, response.message || 'Success');
+        } else {
+          var errMsg = response ? (response.message || response.error || 'Unknown Server Error') : 'Server returned no response';
+          if (!silent) Notify.show('error', 'Gagal', errMsg);
+          if (typeof onError === 'function') onError(errMsg, response);
+        }
+      })
+      .withFailureHandler(function (err) {
+        var errMsg = (err && err.message) ? err.message : 'Execution Failed';
+        if (!silent) Notify.show('error', 'Gagal', errMsg);
+        if (typeof onError === 'function') onError(errMsg, err);
+      });
+    if (typeof runner[serverFunctionName] !== 'function') {
+      if (typeof onError === 'function') onError('Function ' + serverFunctionName + ' undefined');
+      return;
+    }
+    runner[serverFunctionName].apply(runner, args || []);
+  }
+  function showToast(message, isSuccess) { Notify.show(isSuccess ? 'success' : 'error', '', message); }
+  function formatDateIndo(dateString) {
+    if (!dateString || dateString === '-' || dateString === 'null') return '-';
+    var cleanStr = String(dateString).trim();
+    if (cleanStr.indexOf('T') !== -1) cleanStr = cleanStr.split('T')[0];
+    var parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      try {
+        var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (!isNaN(d.getTime())) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      } catch (e) {}
+    }
+    return dateString;
+  }
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+  return { callApi: callApi, showToast: showToast, formatDateIndo: formatDateIndo, escapeHtml: escapeHtml };
+})();
+
+/* ================= CSS DASAR + PROGRESS BAR + SMOOTHNESS ================= */
+function neoEnsureCss() {
+  if (document.getElementById('neoUiCss')) return;
+  var s = document.createElement('style');
+  s.id = 'neoUiCss';
+  s.textContent = '' +
+    /* Progress bar tipis, tidak memblokir */
+    '.neo-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:100005;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .2s;}' +
+    '.neo-progress.on{opacity:1;}' +
+    '.neo-progress div{width:40%;height:100%;background:var(--neo-accent-gradient);animation:neoSlide 1s infinite ease-in-out;}' +
+    '@keyframes neoSlide{0%{transform:translateX(-100%);}100%{transform:translateX(350%);}}' +
+    /* Transisi modal cepat + GPU layer */
+    '.modal{transition:opacity .12s linear!important;}' +
+    '.modal-backdrop{transition:opacity .12s linear!important;}' +
+    '.modal.show .modal-outer-card{animation:neoModalFast .16s ease-out!important;}' +
+    '@keyframes neoModalFast{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}' +
+    '.modal-outer-card{transform:translateZ(0);will-change:transform,opacity;}' +
+    /* Loader (hanya untuk aksi eksplisit) */
+    '#neoLoader{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(224,229,236,.6);}' +
+    '.neo-loader-card{background:var(--neo-surface);border-radius:24px;padding:2rem 2.75rem;box-shadow:var(--neo-shadow-raised-lg);display:flex;flex-direction:column;align-items:center;gap:12px;animation:neoPop .25s ease;}' +
+    '@keyframes neoPop{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}' +
+    /* Popup & dialog */
+    '.neo-swal-popup{background:var(--neo-surface)!important;border-radius:32px!important;box-shadow:var(--neo-shadow-raised-lg)!important;padding:1.5rem!important;position:relative!important;overflow:hidden!important;transform:translateZ(0);}' +
+    '.neo-swal-popup::before{content:"";position:absolute;top:0;left:10%;right:10%;height:3px;background:var(--neo-accent-gradient);border-radius:0 0 4px 4px;opacity:.7;}' +
+    '.neo-swal-inner{background:var(--neo-surface);border-radius:24px;box-shadow:var(--neo-shadow-inset);padding:1.75rem 1.5rem;display:flex;flex-direction:column;align-items:center;gap:10px;}' +
+    '.neo-swal-icon{width:56px;height:56px;border-radius:50%;background:var(--neo-surface);box-shadow:var(--neo-shadow-raised);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;}' +
+    '.neo-swal-title{font-size:1.15rem;font-weight:800;color:var(--neo-text-heading);text-align:center;}' +
+    '.neo-swal-text{font-size:.85rem;font-weight:600;color:var(--neo-text-sub);text-align:center;line-height:1.5;}' +
+    '.neo-notify{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:100004;}' +
+    '.neo-notify-card{width:440px;max-width:90vw;animation:neoIn .25s ease;}' +
+    '.neo-notify.out .neo-notify-card{animation:neoOut .25s ease forwards;}' +
+    '.neo-dialog{position:fixed;inset:0;z-index:100003;display:flex;align-items:center;justify-content:center;background:rgba(224,229,236,.78);padding:1rem;}' +
+    '.neo-dialog-card{width:460px;max-width:92vw;animation:neoIn .25s ease;}' +
+    '.neo-dialog-actions{display:flex;justify-content:center;gap:10px;margin-top:1.25rem;}' +
+    '.neo-btn-confirm,.neo-btn-cancel{border:none;border-radius:999px;padding:.7rem 1.6rem;font-weight:800;font-size:.85rem;cursor:pointer;background:var(--neo-surface);box-shadow:var(--neo-shadow-raised);transition:all .2s ease;font-family:inherit;}' +
+    '.neo-btn-confirm{color:var(--neo-accent);}' +
+    '.neo-btn-cancel{color:var(--neo-status-inactive);}' +
+    '.neo-btn-confirm:hover,.neo-btn-cancel:hover{box-shadow:var(--neo-shadow-raised-hover);transform:translateY(-1px);}' +
+    '@keyframes neoIn{from{opacity:0;transform:translateY(10px)scale(.98);}to{opacity:1;transform:none;}}' +
+    '@keyframes neoOut{to{opacity:0;transform:translateY(-8px)scale(.98);}}';
+  document.head.appendChild(s);
+}
+
+/* ================= CSS KEJELASAN UX ================= */
+function neoEnsureUxCss() {
+  if (document.getElementById('neoUxCss')) return;
+  var s = document.createElement('style');
+  s.id = 'neoUxCss';
+  s.textContent = '' +
+    'input.form-check-input[type="checkbox"]{width:1.45em!important;height:1.45em!important;border-radius:9px!important;border:none!important;background:var(--neo-surface)!important;box-shadow:var(--neo-shadow-inset)!important;appearance:none;-webkit-appearance:none;cursor:pointer;flex-shrink:0;}' +
+    'input.form-check-input[type="checkbox"]:checked{background:var(--neo-accent)!important;background-image:url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'%3e%3cpath fill=\'none\' stroke=\'white\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'3\' d=\'M4 8.5l2.5 2.5L12 5.5\'/%3e%3c/svg%3e")!important;background-repeat:no-repeat!important;background-position:center!important;background-size:90%!important;box-shadow:var(--neo-shadow-raised)!important;}' +
+    'textarea.form-control{resize:none!important;overflow:hidden;}' +
+    '.search-input-clean{min-width:240px;max-width:560px;}';
+  document.head.appendChild(s);
+}
+
+/* ================= PROGRESS BAR (non-blokir) ================= */
+function neoProgress(on) {
+  var b = document.getElementById('neoProgressBar');
+  if (on) {
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'neoProgressBar';
+      b.className = 'neo-progress';
+      b.innerHTML = '<div></div>';
+      document.body.appendChild(b);
+    }
+    b.classList.add('on');
+  } else if (b) {
+    b.classList.remove('on');
+  }
+}
+
+/* ================= UTILITAS UX ================= */
+function neoFit(t) {
+  if (!t || !t.matches || !t.matches('textarea.form-control')) return;
+  t.style.height = 'auto';
+  t.style.height = (t.scrollHeight + 2) + 'px';
+}
+function neoFitTextareas(root) {
+  var scope = root || document;
+  scope.querySelectorAll('textarea.form-control').forEach(neoFit);
+}
+
+function fTipeChange() {
+  var v = document.getElementById('fTipe').value;
+  var w = document.getElementById('wrapFOpsi');
+  var l = document.getElementById('fOpsiLabel');
+  var f = document.getElementById('fOpsi');
+  if (!w || !l || !f) return;
+  if (v === 'select') { w.classList.remove('d-none'); l.textContent = 'Pilihan (pisahkan koma)'; f.placeholder = 'mis. Roda dua,Roda empat'; }
+  else if (v === 'repeater') { w.classList.remove('d-none'); l.textContent = 'Kolom daftar (pisahkan koma)'; f.placeholder = 'mis. nama,nip'; }
+  else { w.classList.add('d-none'); }
+}
+
+/* ================= GUARD TUTUP FORM ================= */
+function neoGuardModal(modalId, flagName) {
+  var mEl = document.getElementById(modalId);
+  if (!mEl || mEl.__neoGuarded) return;
+  mEl.__neoGuarded = true;
+  var bypass = false;
+  mEl.addEventListener('hide.bs.modal', function (e) {
+    if (bypass) { bypass = false; return; }
+    if (window[flagName] === true) {
+      e.preventDefault();
+      NeoDialog.show({
+        icon: 'warning',
+        title: 'Tutup tanpa menyimpan?',
+        text: 'Isian yang belum disimpan akan hilang.',
+        confirmButtonText: 'Tutup & Buang',
+        cancelButtonText: 'Kembali ke Form',
+        showCancelButton: true
+      }, function (r) {
+        if (r.isConfirmed) {
+          bypass = true;
+          window[flagName] = false;
+          var inst = bootstrap.Modal.getInstance(mEl);
+          if (inst) inst.hide();
+        }
+      });
+    }
+  });
+  mEl.addEventListener('shown.bs.modal', function () { window[flagName] = false; });
+}
+
+/* ================= INIT ================= */
+(function () {
+  function init() {
+    neoEnsureCss(); neoEnsureUxCss();
+
+    var s = document.createElement('style');
+    s.id = 'neoFixDnone';
+    s.textContent = '.d-none{display:none!important}button.d-none{display:none!important}.dsc-btn-primary.d-none{display:none!important}.btn-guest-action.d-none{display:none!important}';
+    document.head.appendChild(s);
+
+    /* Preconnect CDN: font & bootstrap lebih cepat */
+    ['https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'].forEach(function (u) {
+      if (!document.querySelector('link[rel="preconnect"][href="' + u + '"]')) {
+        var l = document.createElement('link');
+        l.rel = 'preconnect';
+        l.href = u;
+        if (u === 'https://fonts.gstatic.com') l.crossOrigin = 'anonymous';
+        document.head.appendChild(l);
+      }
+    });
+
+    document.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.matches) return;
+      if (t.closest && t.closest('#formSurat')) window.__formDirty = true;
+      if (t.closest && t.closest('#modalKategori')) window.__katDirty = true;
+      if (t.matches('textarea.form-control')) neoFit(t);
+      if (t.matches('input.form-control')) t.title = t.value || '';
+      if (t.matches('.search-input-clean')) {
+        var ch = Math.min(60, Math.max(26, (t.value || '').length + 10));
+        t.style.setProperty('width', ch + 'ch', 'important');
+      }
+    });
+
+    document.addEventListener('shown.bs.modal', function (e) {
+      if (e.target) neoFitTextareas(e.target);
+    });
+
+    /* Observer DI-THROTTLE dengan requestAnimationFrame (anti jank) */
+    var raf = 0;
+    var mo = new MutationObserver(function () {
+      if (raf) return;
+      raf = requestAnimationFrame(function () { raf = 0; neoFitTextareas(document); });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+
+    neoGuardModal('modalTambahSurat', '__formDirty');
+    neoGuardModal('modalKategori', '__katDirty');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+/* ================= LOADER (hanya aksi eksplisit) ================= */
+var Loader = (function () {
+  function show(text) {
+    hide(); neoEnsureCss();
+    var el = document.createElement('div');
+    el.id = 'neoLoader';
+    el.innerHTML = '<div class="neo-loader-card"><div class="spinner-circle"><span class="spinner-icon"><i class="bi bi-arrow-repeat"></i></span></div><div class="loading-text">' + (text || 'Memproses...') + '</div></div>';
+    document.body.appendChild(el);
+  }
+  function hide() { var e = document.getElementById('neoLoader'); if (e && e.parentNode) e.parentNode.removeChild(e); }
+  return { show: show, hide: hide };
+})();
+
+/* ================= NOTIFY ================= */
+var Notify = (function () {
+  var ICONS = { success: 'bi-check-circle-fill', error: 'bi-x-circle-fill', warning: 'bi-exclamation-triangle-fill', question: 'bi-question-circle-fill', info: 'bi-info-circle-fill' };
+  var COLORS = { success: 'var(--neo-status-active)', error: 'var(--neo-status-inactive)', warning: '#f59e0b', question: 'var(--neo-accent)', info: 'var(--neo-accent)' };
+  function show(icon, title, text) {
+    neoEnsureCss();
+    var wrap = document.createElement('div');
+    wrap.className = 'neo-notify';
+    wrap.innerHTML = '<div class="neo-swal-popup neo-notify-card"><div class="neo-swal-inner">' +
+      '<div class="neo-swal-icon" style="color:' + (COLORS[icon] || 'var(--neo-accent)') + '"><i class="bi ' + (ICONS[icon] || 'bi-info-circle-fill') + '"></i></div>' +
+      (title ? '<div class="neo-swal-title">' + title + '</div>' : '') +
+      (text ? '<div class="neo-swal-text">' + text + '</div>' : '') +
+      '</div></div>';
+    document.body.appendChild(wrap);
+    setTimeout(function () {
+      wrap.classList.add('out');
+      setTimeout(function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 300);
+    }, 2400);
+  }
+  return { show: show, ICONS: ICONS, COLORS: COLORS };
+})();
+
+/* ================= NEODIALOG ================= */
+var NeoDialog = (function () {
+  function show(opts, settle) {
+    neoEnsureCss();
+    var icon = opts.icon || 'question';
+    var ov = document.createElement('div');
+    ov.className = 'neo-dialog';
+    ov.innerHTML = '<div class="neo-swal-popup neo-dialog-card"><div class="neo-swal-inner">' +
+      '<div class="neo-swal-icon" style="color:' + (Notify.COLORS[icon] || 'var(--neo-accent)') + '"><i class="bi ' + (Notify.ICONS[icon] || 'bi-question-circle-fill') + '"></i></div>' +
+      (opts.title ? '<div class="neo-swal-title">' + opts.title + '</div>' : '') +
+      (opts.text ? '<div class="neo-swal-text">' + opts.text + '</div>' : '') +
+      (opts.html ? '<div class="neo-swal-text">' + opts.html + '</div>' : '') +
+      '</div><div class="neo-dialog-actions">' +
+      (opts.showConfirmButton !== false ? '<button type="button" class="neo-btn-confirm">' + (opts.confirmButtonText || 'Ya') + '</button>' : '') +
+      (opts.showCancelButton ? '<button type="button" class="neo-btn-cancel">' + (opts.cancelButtonText || 'Batal') + '</button>' : '') +
+      '</div></div>';
+    document.body.appendChild(ov);
+    var done = false;
+    function close(result) {
+      if (done) return; done = true;
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+      settle(result);
+    }
+    var c = ov.querySelector('.neo-btn-confirm');
+    var b = ov.querySelector('.neo-btn-cancel');
+    if (c) c.onclick = function () { close({ isConfirmed: true, value: true }); };
+    if (b) b.onclick = function () { close({ isConfirmed: false, value: false }); };
+    if (!c && !b) setTimeout(function () { close({ isConfirmed: false, value: false }); }, opts.timer || 2500);
+  }
+  return { show: show };
+})();
+
+/* ================= THENABLE & PATCH Swal ================= */
+function neoThenable(resolver) {
+  var settled = false, result = null, cbs = [];
+  function settle(r) { settled = true; result = r; cbs.forEach(function (cb) { cb(r); }); }
+  resolver(settle);
+  return { then: function (cb) { if (typeof cb === 'function') { if (settled) cb(result); else cbs.push(cb); } return this; } };
+}
+
+if (typeof Swal !== 'undefined') {
+  Swal.fire = function (opts) {
+    opts = opts || {};
+    var isDialog = (opts.showCancelButton === true) || (opts.showConfirmButton === true);
+    if (!isDialog) {
+      Notify.show(opts.icon || 'info', opts.title || '', opts.text || opts.html || '');
+      return neoThenable(function (settle) { setTimeout(function () { settle({ isConfirmed: false, value: false }); }, 2400); });
+    }
+    return neoThenable(function (settle) { NeoDialog.show(opts, settle); });
+  };
+}
+</script>

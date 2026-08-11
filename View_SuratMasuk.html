@@ -1,0 +1,138 @@
+<section id="sec-surat-masuk">
+  <div class="action-toolbar-row">
+    <div class="toolbar-left">
+      <input type="text" id="suratSearchInput" class="search-input-clean" placeholder="Cari agenda, pengirim, perihal..." onkeyup="filterSuratTable()">
+      <select id="filterStatusSurat" class="form-control" style="width:auto; margin-left:8px; padding:8px 14px; border-radius:999px; box-shadow:var(--neo-shadow-flat); font-size:.78rem; font-weight:700;" onchange="setSuratStatusFilter(this.value)">
+        <option value="ALL">Semua status</option>
+        <option value="AKTIF">Hanya Aktif</option>
+        <option value="BATAL">Hanya Dibatalkan</option>
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-guest-action" style="padding:9px 16px; border-radius:999px; font-size:.78rem;" onclick="openManajemenKategori()"><i class="bi bi-sliders"></i> Manajemen Kategori</button>
+      <button class="dsc-btn-primary" style="margin-bottom:0;" onclick="openModalTambahSurat()"><i class="bi bi-plus-circle-fill"></i> Tambah Surat</button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="dsc-table">
+      <thead><tr>
+        <th style="width:9%;">Agenda</th><th style="width:13%;">Pengirim</th><th style="width:27%;">Perihal & Detail</th>
+        <th style="width:13%;">Kategori</th><th style="width:12%;">Tanggal</th><th style="width:11%;">Status</th><th style="width:15%;">Aksi</th>
+      </tr></thead>
+      <tbody id="suratTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ MODAL MANAJEMEN KATEGORI (v4) ============ -->
+<div class="modal fade" id="modalKategori" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-outer-card modal-wide">
+      <div class="modal-inner-card">
+        <button type="button" class="modal-close-btn" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        <h6 class="fw-bold mb-3" style="color:var(--neo-text-heading);"><i class="bi bi-tags-fill" style="color:var(--neo-accent);"></i> Manajemen Jenis Surat</h6>
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <div class="wizard-step" style="height:100%;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="wizard-step-title" style="margin-bottom:0;">Daftar</div>
+                <button type="button" class="btn-picker" onclick="editKategori('')"><i class="bi bi-plus"></i> Baru</button>
+              </div>
+              <div id="katListContainer" style="max-height:55vh; overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <div class="col-md-8">
+            <div class="wizard-step">
+              <div class="wizard-step-title">Editor Kategori</div>
+              <input type="hidden" id="katId">
+              <div class="row g-2">
+                <div class="col-md-6"><label class="form-label">Nama Jenis</label><input class="form-control" id="katNama"></div>
+                <div class="col-md-6"><label class="form-label">Disposisi Default</label><input class="form-control" id="katTujuan" list="listTujuan"></div>
+                <div class="col-md-6"><label class="form-label">Balasan Default</label><input class="form-control" id="katBalasan" placeholder="mis. Surat Jalan"></div>
+                <div class="col-md-6 d-flex align-items-end">
+                  <div class="switch-card w-100">
+                    <input class="form-check-input" type="checkbox" id="katAktif" checked>
+                    <label class="form-check-label" for="katAktif" style="font-size:.78rem; font-weight:700; margin:0;">Tampilkan di pilihan Jenis Surat</label>
+                  </div>
+                </div>
+                <div class="col-md-6"><label class="form-label">Label Tahap 2</label><input class="form-control" id="katLabel2" placeholder="mis. Kegiatan / Kendaraan"></div>
+                <div class="col-md-6"><label class="form-label">Label Tahap 3</label><input class="form-control" id="katLabel3" placeholder="mis. Detail / Orang"></div>
+
+                <div class="col-12">
+                  <div class="switch-card">
+                    <input class="form-check-input" type="checkbox" id="katPakaiJadwal" onchange="katJadwalChange()">
+                    <label class="form-check-label" for="katPakaiJadwal" style="font-size:.8rem; font-weight:700; color:var(--neo-text-sub); margin:0;">Sertakan blok "Pelaksanaan" di Tahap 2</label>
+                  </div>
+                </div>
+                <div class="col-md-6 d-none" id="katJadwalOpts">
+                  <label class="form-label">Tempat pada jadwal</label>
+                  <select class="form-control" id="katModeTempat" onchange="katModeTempatChange()">
+                    <option value="INPUT">Diisi manual + picker</option>
+                    <option value="NONE">Tidak pakai tempat</option>
+                    <option value="FIELD">Mengikuti field lain</option>
+                  </select>
+                </div>
+                <div class="col-md-6 d-none" id="wrapKatModeField">
+                  <label class="form-label">Field sumber tempat</label>
+                  <select class="form-control" id="katModeField"></select>
+                  <div class="field-hint">Nilai field ini otomatis menjadi tempat pada jadwal.</div>
+                </div>
+
+                <div class="col-12 text-end"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="simpanKategoriForm()"><i class="bi bi-save"></i> Simpan Kategori</button></div>
+              </div>
+            </div>
+
+            <div class="wizard-step">
+              <div class="wizard-step-title">Field Form untuk Kategori Ini</div>
+              <div id="fieldListContainer" style="max-height:24vh; overflow-y:auto;"></div>
+              <div class="row g-2 mt-1">
+                <div class="col-md-4"><label class="form-label">Label</label><input class="form-control" id="fLabel"></div>
+                <div class="col-md-2"><label class="form-label">Tipe</label><select class="form-control" id="fTipe" onchange="fTipeChange()"><option>text</option><option>number</option><option>textarea</option><option>select</option><option>repeater</option></select></div>
+                <div class="col-md-3 d-none" id="wrapFOpsi">
+                  <label class="form-label" id="fOpsiLabel">Opsi (koma)</label>
+                  <input class="form-control" id="fOpsi" placeholder="">
+                </div>
+                <div class="col-md-3"><label class="form-label">Tampil di tahap</label><select class="form-control" id="fTahap"><option value="2">2 · Kegiatan</option><option value="3" selected>3 · Detail</option></select></div>
+                <div class="col-md-3"><label class="form-label">Isi cepat dari master</label><select class="form-control" id="fSumber"><option value="">— manual —</option><option value="master_aset:tempat">Master Tempat</option><option value="master_aset:barang">Master Barang</option><option value="master_aset:kendaraan">Master Kendaraan</option><option value="master_orang">Master Orang</option></select></div>
+                <div class="col-md-3">
+                  <div class="switch-card">
+                    <input class="form-check-input" type="checkbox" id="fRequired">
+                    <label class="form-check-label" for="fRequired" style="font-size:.75rem; font-weight:700; margin:0;">Wajib diisi</label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="switch-card">
+                    <input class="form-check-input" type="checkbox" id="fOpsional">
+                    <label class="form-check-label" for="fOpsional" style="font-size:.75rem; font-weight:700; margin:0;">Opsional — pengguna centang bila perlu</label>
+                  </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end"><button class="btn-picker w-100 justify-content-center" onclick="simpanFieldForm()"><i class="bi bi-plus"></i> Tambah Field</button></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ===== PENANDA VISUAL BATAL ===== */
+.pinterest-card-batal { opacity: .65; }
+.pinterest-card-batal .pinterest-card-title { text-decoration: line-through; color: var(--neo-status-inactive); }
+.disposisi-card-batal { opacity: .65; border-left: 4px solid var(--neo-status-inactive); }
+.agenda-item-batal { opacity: .6; }
+.agenda-item-batal .agenda-widget-title { text-decoration: line-through; }
+.calendar-event-batal {
+  text-decoration: line-through;
+  background: rgba(245, 101, 101, .15);
+  color: var(--neo-status-inactive);
+}
+.calendar-event-batal:hover {
+  background: rgba(245, 101, 101, .25);
+  color: var(--neo-status-inactive);
+}
+</style>

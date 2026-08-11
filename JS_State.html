@@ -1,0 +1,67 @@
+<script>
+/**
+ * ============================================================================
+ * LETTERCORE - GLOBAL STATE & HELPERS
+ * ============================================================================
+ */
+
+// ================= GLOBAL STATE =================
+let rawDataSurat = [];
+let jadwalListState = [];
+let currentCalendarDate = new Date();
+let flatpickrInstance = null;
+let editingSuratMeta = { agendaNomor: '', createdAt: '' };
+let carouselIntervalTimer = null;
+let currentSlideIndex = 0;
+
+// ================= DATE HELPERS =================
+function formatTanggalIndo(dateString) {
+  return UIHelper.formatDateIndo(dateString);
+}
+
+// ================= JADWAL STATUS =================
+function getJadwalStatus(j, now) {
+  now = now || new Date();
+  if (!j) return { code: 'BELUM', label: 'Tanpa Jadwal', badgeClass: 'badge-status', isPulse: false };
+
+  var tgl = j.tglMulai || j.tglKegiatan;
+  if (!tgl) return { code: 'BELUM', label: 'Tanpa Jadwal', badgeClass: 'badge-status', isPulse: false };
+
+  // Parse Y-M-D
+  var parts = String(tgl).split('-');
+  var eventDate = null;
+  if (parts.length === 3) {
+    eventDate = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  }
+  if (!eventDate || isNaN(eventDate.getTime())) {
+    return { code: 'BELUM', label: '-', badgeClass: 'badge-status', isPulse: false };
+  }
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  eventDate.setHours(0,0,0,0);
+
+  if (eventDate.getTime() === today.getTime()) {
+    return { code: 'HARI_INI', label: 'Hari Ini', badgeClass: 'badge-status active', isPulse: true };
+  }
+  if (eventDate > today) {
+    return { code: 'AKAN_DATANG', label: 'Akan Datang', badgeClass: 'badge-status', isPulse: false, accent: true };
+  }
+  return { code: 'SELESAI', label: 'Selesai', badgeClass: 'badge-status', isPulse: false, muted: true };
+}
+
+// ================= CALENDAR NAV =================
+function prevMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+  renderConventionalCalendar();
+}
+
+function nextMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+  renderConventionalCalendar();
+}
+
+function goToToday() {
+  currentCalendarDate = new Date();
+  renderConventionalCalendar();
+}
+</script>

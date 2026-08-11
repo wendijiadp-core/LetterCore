@@ -1,0 +1,309 @@
+<script>
+/**
+ * ============================================================================
+ * LETTERCORE - RENDER FUNCTIONS (Status BATAL: tampil dengan penanda)
+ * ============================================================================
+ */
+
+var INDO_MONTHS = { januari:'01', februari:'02', maret:'03', april:'04', mei:'05', juni:'06',
+                    juli:'07', agustus:'08', september:'09', oktober:'10', november:'11', desember:'12' };
+function indoToYMD(str) {
+  if (!str) return '';
+  var s = String(str).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+  if (s.indexOf(',') !== -1) s = s.split(',')[1];
+  var m = s.trim().match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (m) {
+    var mm = INDO_MONTHS[m[2].toLowerCase()];
+    if (mm) return m[3] + '-' + mm + '-' + ('0'+m[1]).slice(-2);
+  }
+  return '';
+}
+
+function getStatus(j) {
+  if (!j) return { code:'BELUM', label:'Tanpa Jadwal', cls:'badge-status', style:'' };
+  var ymd = indoToYMD(j.tglMulai || j.tglKegiatan);
+  if (!ymd) return { code:'BELUM', label:'-', cls:'badge-status', style:'' };
+  var ev = new Date(ymd); ev.setHours(0,0,0,0);
+  var now = new Date(); now.setHours(0,0,0,0);
+  if (ev.getTime() === now.getTime()) return { code:'HARI_INI', label:'Hari Ini', cls:'badge-status active', style:'' };
+  if (ev > now) return { code:'AKAN', label:'Akan Datang', cls:'badge-status', style:'color:var(--neo-accent);' };
+  return { code:'SELESAI', label:'Selesai', cls:'badge-status', style:'color:var(--neo-text-muted);' };
+}
+
+function esc(v){ return UIHelper.escapeHtml(v); }
+function isBatal(s){ return s && s.status === 'BATAL'; }
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(data) {
+  data = data || [];
+  var el = function(id){ return document.getElementById(id); };
+
+  var totalJadwal = 0, scanCount = 0, tempatSet = {};
+  data.forEach(function(s){
+    if (s.urlScan) scanCount++;
+    if (isBatal(s)) return;                       // metrik hanya hitung AKTIF
+    if (s.jadwalList) { totalJadwal += s.jadwalList.length;
+      s.jadwalList.forEach(function(j){ if(j.tempatKegiatan) tempatSet[j.tempatKegiatan]=1; }); }
+  });
+  if (el('dashTotalSurat')) el('dashTotalSurat').innerText = data.length;
+  if (el('dashTotalJadwal')) el('dashTotalJadwal').innerText = totalJadwal;
+  if (el('dashTotalTempat')) el('dashTotalTempat').innerText = Object.keys(tempatSet).length;
+  if (el('dashTotalScan')) el('dashTotalScan').innerText = scanCount;
+
+  renderOngoingCarousel(data);
+  renderPinterest(data.slice(0,3));
+
+  if (el('dashLoading')) el('dashLoading').classList.add('d-none');
+  if (el('pinterestGrid')) el('pinterestGrid').classList.remove('d-none');
+}
+
+function renderOngoingCarousel(data) {
+  var track = document.getElementById('ongoingGridTrack');
+  var dots = document.getElementById('ongoingCarouselDots');
+  var badge = document.getElementById('ongoingBadgeCount');
+  if (!track) return;
+
+  var ongoing = [];
+  data.forEach(function(s){
+    // AKTIF maupun BATAL TETAP TAMPIL (untuk pelacakan)
+    (s.jadwalList||[]).forEach(function(j){
+      if (getStatus(j).code === 'HARI_INI') ongoing.push({s:s, j:j});
+    });
+  });
+
+  if (badge) badge.innerHTML = ongoing.length + ' Kegiatan';
+  if (carouselIntervalTimer) { clearInterval(carouselIntervalTimer); carouselIntervalTimer = null; }
+
+  if (ongoing.length === 0) {
+    track.innerHTML = '<div class="carousel-ongoing-slide"><div class="ongoing-empty-state">' +
+      '<i class="bi bi-calendar-x"></i>Tidak ada kegiatan hari ini.</div></div>';
+    if (dots) dots.classList.add('d-none');
+    return;
+  }
+
+  var slides = [];
+  for (var i=0; i<ongoing.length; i+=3) slides.push(ongoing.slice(i,i+3));
+
+  track.innerHTML = slides.map(function(group){
+    return '<div class="carousel-ongoing-slide"><div class="row g-3">' + group.map(function(o){
+      var batal = isBatal(o.s);
+      var badgeHtml = batal
+        ? '<span class="badge-status" style="color:var(--neo-status-inactive);">Dibatalkan</span>'
+        : '<span class="badge-status active">Hari Ini</span>';
+      return '<div class="col-md-4"><div class="pinterest-card' + (batal ? ' pinterest-card-batal' : '') + '">' +
+        '<div class="pinterest-card-head"><span class="pinterest-card-badge">' + esc(o.s.agendaNomor) + '</span>' +
+        badgeHtml + '</div>' +
+        '<div class="pinterest-card-title">' + esc(o.s.perihal) + '</div>' +
+        '<div class="pinterest-card-desc"><i class="bi bi-geo-alt me-1"></i>' + esc(o.j.tempatKegiatan) + '</div>' +
+        '<div class="pinterest-card-foot"><span><i class="bi bi-clock"></i>' + esc(o.j.waktuKegiatan||o.j.waktuMulai||'-') + '</span>' +
+        '<span style="color:var(--neo-accent);cursor:pointer;" onclick="openModalDetailSurat(\'' + esc(o.s.idSurat) + '\')">Detail</span></div>' +
+        '</div></div>';
+    }).join('') + '</div></div>';
+  }).join('');
+
+  if (dots) {
+    dots.classList.remove('d-none');
+    dots.innerHTML = slides.map(function(_, idx){
+      return '<div class="carousel-dot' + (idx===0?' active':'') + '" data-idx="' + idx + '" onclick="goToSlide(' + idx + ')"></div>';
+    }).join('');
+  }
+
+  currentSlideIndex = 0;
+  if (slides.length > 1) {
+    carouselIntervalTimer = setInterval(function(){ goToSlide((currentSlideIndex+1) % slides.length); }, 5000);
+  }
+}
+
+function goToSlide(idx) {
+  currentSlideIndex = idx;
+  var track = document.getElementById('ongoingGridTrack');
+  if (track) track.style.transform = 'translateX(-' + (idx*100) + '%)';
+  document.querySelectorAll('#ongoingCarouselDots .carousel-dot').forEach(function(d,i){
+    d.classList.toggle('active', i===idx);
+  });
+}
+
+function renderPinterest(list) {
+  var grid = document.getElementById('pinterestGrid');
+  if (!grid) return;
+  if (!list || list.length === 0) {
+    grid.innerHTML = '<div class="col-12"><div class="ongoing-empty-state"><i class="bi bi-inbox"></i>Belum ada surat masuk.</div></div>';
+    return;
+  }
+  grid.innerHTML = list.map(function(s){
+    var st = (s.jadwalList && s.jadwalList.length) ? getStatus(s.jadwalList[0]) : null;
+    var batal = isBatal(s);
+    var badge = batal
+      ? '<span class="badge-status" style="color:var(--neo-status-inactive);">Dibatalkan</span>'
+      : (st ? '<span class="' + st.cls + '" style="' + st.style + '">' + st.label + '</span>' : '');
+    return '<div class="col-md-4"><div class="pinterest-card' + (batal ? ' pinterest-card-batal' : '') + '" onclick="openModalDetailSurat(\'' + esc(s.idSurat) + '\')">' +
+      '<div class="pinterest-card-head"><span class="pinterest-card-badge">' + esc(s.agendaNomor) + '</span>' + badge + '</div>' +
+      '<div class="pinterest-card-title">' + esc(s.perihal) + '</div>' +
+      '<div class="pinterest-card-desc">' + esc(s.deskripsi || s.perihal) + '</div>' +
+      '<div class="pinterest-card-foot"><span><i class="bi bi-building"></i>' + esc(s.pengirim) + '</span>' +
+      '<span>' + esc(s.tglSurat) + '</span></div></div></div>';
+  }).join('');
+}
+
+/* ================= TABEL SURAT MASUK ================= */
+function renderSuratTable(data) {
+  var tbody = document.getElementById('suratTableBody');
+  if (!tbody) return;
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="ongoing-empty-state"><i class="bi bi-inbox"></i>Tidak ada data surat.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(function (s) {
+    var batal = isBatal(s);
+    var st = (s.jadwalList && s.jadwalList.length) ? getStatus(s.jadwalList[0]) : { label: '-', cls: 'badge-status', style: '' };
+    var kat = kategoriList.find(function (k) { return k.id === s.kategoriId; });
+    var disp = s.urlDisposisi
+      ? '<a class="dsc-btn-action" style="position:relative;" title="Buka Disposisi" target="_blank" href="' + esc(s.urlDisposisi) + '"><i class="bi bi-file-earmark-word"></i><span class="dot-status" style="background:var(--neo-status-active); box-shadow:0 0 6px rgba(72,187,120,.6);"></span></a>'
+      : '<span class="dsc-btn-action" style="opacity:.35;"><i class="bi bi-file-earmark-word"></i></span>';
+    var statusBtn = batal
+      ? '<button class="dsc-btn-action" title="Aktifkan Kembali" onclick="aksiAktifkan(\'' + esc(s.idSurat) + '\')"><i class="bi bi-arrow-counterclockwise"></i></button>'
+      : '<button class="dsc-btn-action" title="Batalkan Kegiatan" onclick="openDialogBatalkan(\'' + esc(s.idSurat) + '\')"><i class="bi bi-x-octagon"></i></button>';
+    return '<tr' + (batal ? ' style="opacity:.55;"' : '') + '>' +
+      '<td><b>' + esc(s.agendaNomor) + '</b></td>' +
+      '<td>' + esc(s.pengirim) + '</td>' +
+      '<td style="text-align:left !important; padding-left:1rem !important;"><b>' + esc(s.perihal) + '</b><br><small style="color:var(--neo-text-sub);">' + esc(s.nomorSurat) + '</small></td>' +
+      '<td>' + esc(kat ? kat.nama : (s.kategoriId || '-')) + '</td>' +
+      '<td>' + esc(s.tglDiterima) + '</td>' +
+      '<td>' + (batal ? '<span class="badge-status" style="color:var(--neo-status-inactive);">Dibatalkan</span>' : '<span class="' + st.cls + '" style="' + st.style + '">' + st.label + '</span>') + '</td>' +
+      '<td><div class="action-btn-group">' + disp +
+      '<button class="dsc-btn-action" title="Detail" onclick="openModalDetailSurat(\'' + esc(s.idSurat) + '\')"><i class="bi bi-eye"></i></button>' +
+      '<button class="dsc-btn-action" title="Edit" onclick="openModalEditSurat(\'' + esc(s.idSurat) + '\')"><i class="bi bi-pencil"></i></button>' +
+      statusBtn +
+      '<button class="dsc-btn-action" title="Hapus" onclick="konfirmasiHapusSurat(\'' + esc(s.idSurat) + '\')"><i class="bi bi-trash"></i></button>' +
+      '</div></td></tr>';
+  }).join('');
+}
+
+/* ================= SIDEBAR AGENDA ================= */
+function renderSidebarAgenda() {
+  var list = document.getElementById('sidebarAgendaList');
+  if (!list) return;
+  var now = new Date();
+  var curMonth = now.getMonth(), curYear = now.getFullYear();
+  var items = [];
+  rawDataSurat.forEach(function(s){
+    // AKTIF maupun BATAL TETAP TAMPIL
+    (s.jadwalList||[]).forEach(function(j){
+      var ymd = indoToYMD(j.tglMulai || j.tglKegiatan);
+      if (ymd) {
+        var p = ymd.split('-');
+        if (parseInt(p[1],10)-1 === curMonth && parseInt(p[0],10) === curYear) items.push({s:s, j:j, ymd:ymd});
+      }
+    });
+  });
+  items.sort(function(a,b){ return a.ymd < b.ymd ? -1 : 1; });
+
+  if (items.length === 0) {
+    list.innerHTML = '<div style="text-align:center; padding:1.5rem 0.5rem; color:var(--neo-text-muted); font-size:0.75rem; font-weight:600;">Tidak ada agenda bulan ini.</div>';
+    return;
+  }
+  list.innerHTML = items.slice(0,10).map(function(o){
+    var batal = isBatal(o.s);
+    var badge = batal ? '<span class="badge-status" style="color:var(--neo-status-inactive); font-size:.6rem; margin-left:6px;">Batal</span>' : '';
+    return '<div class="agenda-widget-item' + (batal ? ' agenda-item-batal' : '') + '" onclick="openModalDetailSurat(\'' + esc(o.s.idSurat) + '\')">' +
+      '<div class="agenda-widget-icon"><i class="bi bi-calendar-event"></i></div>' +
+      '<div class="agenda-widget-body"><div class="agenda-widget-title">' + esc(o.s.perihal) + badge + '</div>' +
+      '<div class="agenda-widget-meta"><span><i class="bi bi-clock"></i> ' + esc(o.j.tglMulai||o.j.tglKegiatan) + '</span></div></div></div>';
+  }).join('');
+}
+
+/* ================= KALENDER ================= */
+function renderConventionalCalendar() {
+  var grid = document.getElementById('calendarGridDays');
+  var title = document.getElementById('calendarMonthYearTitle');
+  if (!grid || !title) return;
+
+  var q = ((document.getElementById('calendarSearchInput')||{}).value || '').toLowerCase();
+  var y = currentCalendarDate.getFullYear(), m = currentCalendarDate.getMonth();
+  var MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  title.innerText = MONTHS[m] + ' ' + y;
+
+  var firstDay = new Date(y, m, 1).getDay();
+  var offset = (firstDay === 0 ? 6 : firstDay - 1);
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var daysPrev = new Date(y, m, 0).getDate();
+
+  var html = '';
+  for (var i=offset; i>0; i--) {
+    html += '<div class="calendar-cell other-month"><div class="calendar-date-num">' + (daysPrev-i+1) + '</div></div>';
+  }
+  var today = new Date();
+  for (var d=1; d<=daysInMonth; d++) {
+    var dateStr = y + '-' + ('0'+(m+1)).slice(-2) + '-' + ('0'+d).slice(-2);
+    var events = '';
+    rawDataSurat.forEach(function(s){
+      // AKTIF maupun BATAL TETAP TAMPIL (batal = coret + merah)
+      (s.jadwalList||[]).forEach(function(j){
+        if (indoToYMD(j.tglMulai||j.tglKegiatan) === dateStr) {
+          var label = s.perihal || 'Kegiatan';
+          if (!q || label.toLowerCase().indexOf(q)!==-1 || (j.tempatKegiatan||'').toLowerCase().indexOf(q)!==-1) {
+            var batal = isBatal(s);
+            events += '<div class="calendar-event-chip' + (batal ? ' calendar-event-batal' : '') + '" onclick="event.stopPropagation(); openModalDetailSurat(\'' + esc(s.idSurat) + '\')">' + esc(label) + (batal ? ' (Batal)' : '') + '</div>';
+          }
+        }
+      });
+    });
+    var isToday = (d===today.getDate() && m===today.getMonth() && y===today.getFullYear());
+    html += '<div class="calendar-cell' + (isToday?' today':'') + '"><div class="calendar-date-num">' + d + '</div>' + events + '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+/* ================= DISPOSISI / EKSPEDISI LIST ================= */
+function renderDisposisiCards() {
+  var box = document.getElementById('ekspedisiList');
+  if (!box) return;
+  var q = ((document.getElementById('disposisiSearchInput') || {}).value || '').toLowerCase();
+  var fStage = ((document.getElementById('filterTahap') || {}).value || '');
+
+  var list = rawDataSurat.filter(function (s) {
+    var st = (ekspedisiMap[s.idSurat] || {}).tahap || 'diinput';
+    if (fStage && st !== fStage) return false;
+    return (s.agendaNomor || '').toLowerCase().indexOf(q) !== -1 ||
+           (s.perihal || '').toLowerCase().indexOf(q) !== -1 ||
+           (s.pengirim || '').toLowerCase().indexOf(q) !== -1;
+  });
+
+  var badge = document.getElementById('disposisiCountBadge');
+  if (badge) badge.innerHTML = list.length + ' Surat';
+
+  if (!list.length) {
+    box.innerHTML = '<div class="col-12"><div class="ongoing-empty-state"><i class="bi bi-inbox"></i>Tidak ada surat.</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var s = list[i];
+    var st = (ekspedisiMap[s.idSurat] || {}).tahap || 'diinput';
+    var link = s.urlDisposisi
+      ? '<a target="_blank" href="' + esc(s.urlDisposisi) + '" style="color:var(--neo-accent);">Lembar disposisi</a>'
+      : '<span style="color:var(--neo-text-muted);">-</span>';
+    var stageBadge = isBatal(s)
+      ? '<span class="badge-status" style="color:var(--neo-status-inactive);">Dibatalkan</span>'
+      : '<span class="badge-status" style="color:var(--neo-accent);">' + esc(TAHAP_LABEL[st] || st) + '</span>';
+
+    html += '<div class="col-md-6">';
+    html += '<div class="disposisi-card' + (isBatal(s) ? ' disposisi-card-batal' : '') + '">';
+    html += '<div class="disposisi-card-head"><div class="disposisi-doc-icon"><i class="bi bi-box-seam"></i></div>' + stageBadge + '</div>';
+    html += '<div class="pinterest-card-title">' + esc(s.agendaNomor) + ' — ' + esc(s.perihal) + '</div>';
+    html += '<div class="pinterest-card-desc">' + esc(s.pengirim) + ' · ' + esc(s.tglDiterima) + '</div>';
+    html += '<div class="pinterest-card-foot"><span>' + link + '</span>';
+    html += '<span style="color:var(--neo-accent); cursor:pointer; font-weight:800;" onclick="klikTimeline(\'' + esc(s.idSurat) + '\')">Timeline <i class="bi bi-arrow-right"></i></span></div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function klikTimeline(id) {
+  if (typeof openEkspedisi === 'function') openEkspedisi(id);
+  else alert('openEkspedisi belum termuat. Simpan tambahan JS_Modals.html lalu Deploy NEW VERSION.');
+}
+</script>

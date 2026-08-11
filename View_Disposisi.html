@@ -1,0 +1,46 @@
+<section id="sec-disposisi">
+
+  <!-- Toolbar daftar -->
+  <div class="action-toolbar-row" id="ekspedisiToolbar">
+    <div class="toolbar-left">
+      <input type="text" id="disposisiSearchInput" class="search-input-clean" placeholder="Cari surat..." onkeyup="renderDisposisiCards()">
+      <select id="filterTahap" class="form-control" style="width:190px; margin-bottom:0;" onchange="renderDisposisiCards()">
+        <option value="">Semua tahap</option>
+        <option value="diinput">Diinput</option>
+        <option value="disposisi_dibuat">Disposisi dibuat</option>
+        <option value="tercetak">Tercetak</option>
+        <option value="keputusan">Keputusan</option>
+        <option value="diterima">Selesai</option>
+      </select>
+    </div>
+    <div class="toolbar-right"><span class="badge-status active" id="disposisiCountBadge">0 Surat</span></div>
+  </div>
+
+  <!-- Daftar kartu -->
+  <div id="ekspedisiList" class="row g-3"></div>
+
+  <!-- DETAIL INLINE (tanpa modal) -->
+  <div id="ekspedisiDetail" class="d-none" style="margin-top:1.5rem;">
+    <div class="wizard-step">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="wizard-step-title" style="margin-bottom:0;" id="ekspedisiTitle"></div>
+        <button type="button" class="btn-picker" onclick="tutupEkspedisi()"><i class="bi bi-arrow-left"></i> Kembali ke daftar</button>
+      </div>
+      <div id="ekspedisiTimeline"></div>
+      <div id="ekspedisiAction" class="mt-3"></div>
+    </div>
+  </div>
+
+</section>
+
+<style>
+.tl-item { display: flex; gap: 12px; padding: 8px 0; position: relative; }
+.tl-line { position: absolute; left: 5px; top: 26px; bottom: -8px; width: 2px; background: rgba(163,177,198,.3); }
+.tl-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--neo-accent); box-shadow: 0 0 8px rgba(102,126,234,.5); margin-top: 4px; flex-shrink: 0; }
+.tl-item.future .tl-dot { background: rgba(163,177,198,.4); box-shadow: none; }
+.tl-item.future .tl-line { background: rgba(163,177,198,.15); }
+.tl-judul { font-size: .82rem; font-weight: 800; color: var(--neo-text-heading); }
+.tl-item.future .tl-judul { color: var(--neo-text-muted); }
+.tl-meta { font-size: .68rem; color: var(--neo-text-sub); font-weight: 600; }
+.dot-status { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; }
+</style>

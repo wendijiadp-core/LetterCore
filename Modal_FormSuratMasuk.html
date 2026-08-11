@@ -1,0 +1,177 @@
+<!-- ============ MODAL FORM SURAT MASUK — WIZARD METADATA-DRIVEN ============ -->
+<div class="modal fade" id="modalTambahSurat" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-outer-card modal-wide">
+      <div class="modal-inner-card">
+
+        <!-- TOPBAR STICKY -->
+        <div class="wiz-topbar">
+          <div class="wiz-title-row">
+            <h6 class="wiz-title" id="modalSuratTitle"><i class="bi bi-envelope-plus-fill" style="color:var(--neo-accent);"></i> Catat Surat Masuk Baru</h6>
+            <button type="button" class="wiz-close-btn" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="wiz-indicator">
+            <div class="wiz-dot active" id="wizDot1">1 · Surat</div>
+            <div class="wiz-dot" id="wizDot2">2 · Kegiatan</div>
+            <div class="wiz-dot" id="wizDot3">3 · Detail</div>
+            <div class="wiz-dot" id="wizDot4">4 · Konfirmasi</div>
+          </div>
+        </div>
+
+        <form id="formSurat" onsubmit="submitFormSurat(event); return false;">
+          <input type="hidden" id="formIdSurat">
+
+          <!-- ========== TAHAP 1 ========== -->
+          <div class="wiz-panel" id="wizPanel1">
+            <div class="wizard-step">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="wizard-step-title" style="margin-bottom:0;"><i class="bi bi-file-earmark-text-fill"></i> Informasi Persuratan</div>
+                <button type="button" class="btn-picker" onclick="openAutoFill()"><i class="bi bi-clipboard-check"></i> Ambil dari surat sebelumnya</button>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Jenis Surat</label>
+                  <select id="selectKategori" class="form-control" onchange="onKategoriChange()"></select>
+                  <div class="field-hint">Pilih dulu — tujuan terisi otomatis & form menyesuaikan.</div>
+                </div>
+                <div class="col-md-3"><label class="form-label">Tanggal Diterima *</label><input type="date" id="inputTglDiterima" class="form-control" required></div>
+                <div class="col-md-3"><label class="form-label">Tanggal Surat *</label><input type="date" id="inputTglSurat" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Pengirim *</label><input type="text" id="inputPengirim" list="listPengirim" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Tujuan *</label><input type="text" id="inputTujuan" list="listTujuan" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Nomor Surat *</label><input type="text" id="inputNomorSurat" class="form-control" required></div>
+                <div class="col-md-6">
+                  <label class="form-label">Perihal *</label>
+                  <input type="text" id="inputPerihal" list="listPerihal" class="form-control" required>
+                  <div class="field-hint">Tulis perihal sesuai yang tertera di surat.</div>
+                </div>
+                <div class="col-12"><label class="form-label">Deskripsi</label><textarea id="inputDeskripsi" class="form-control" rows="1"></textarea></div>
+                <div class="col-12">
+                  <div class="switch-card">
+                    <input class="form-check-input" type="checkbox" id="chkIsSisipan">
+                    <label class="form-check-label" for="chkIsSisipan" style="font-size:.8rem; font-weight:700; color:var(--neo-text-sub); margin:0;">Surat Sisipan / Tanggal Mundur</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== TAHAP 2 ========== -->
+          <div class="wiz-panel d-none" id="wizPanel2">
+            <div class="wizard-step">
+              <div class="wizard-step-title" id="step2Title"><i class="bi bi-calendar-event-fill"></i> Kegiatan</div>
+              <div class="row g-3" id="step2Fields"></div>
+              <div id="step2OptionalBox" class="mt-2"></div>
+            </div>
+            <div class="wizard-step" id="step2Jadwal">
+              <div class="wizard-step-title"><i class="bi bi-clock-history"></i> Pelaksanaan</div>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                  <label class="form-label">Mode Tanggal</label>
+                  <select id="selectDateMode" class="form-control" onchange="initFlatpickr()">
+                    <option value="single">Tunggal</option>
+                    <option value="range">Rentang (berurutan)</option>
+                    <option value="multiple">Acak (beberapa)</option>
+                  </select>
+                </div>
+                <div class="col-md-3"><label class="form-label">Tanggal</label><input type="text" id="multiDatePicker" class="form-control" placeholder="Pilih..."></div>
+                <div class="col-md-2"><label class="form-label">Mulai</label><input type="time" id="inputWaktuMulai" class="form-control" value="08:00"></div>
+                <div class="col-md-2"><label class="form-label">Selesai</label><input type="time" id="inputWaktuSelesai" class="form-control" value="16:00"></div>
+                <div class="col-md-2" id="wrapTempat">
+                  <label class="form-label">Tempat</label>
+                  <div class="d-flex gap-1">
+                    <input type="text" id="inputTempatKegiatan" list="listTempatKegiatan" class="form-control" placeholder="Tempat">
+                    <button type="button" class="btn-picker" onclick="openCardPicker('tempat', function(a){ document.getElementById('inputTempatKegiatan').value = a['nama']; });"><i class="bi bi-grid-fill"></i> Pilih</button>
+                  </div>
+                </div>
+                <div class="col-12 text-end">
+                  <button type="button" class="dsc-btn-primary" style="margin-bottom:0;" onclick="eksekusiTambahJadwal()"><i class="bi bi-plus-lg"></i> Tambah Jadwal</button>
+                </div>
+              </div>
+              <div style="max-height:200px; overflow-y:auto; margin-top:.75rem;">
+                <table class="schedule-table">
+                  <thead><tr><th>Tanggal</th><th>Waktu</th><th>Tempat</th><th style="width:50px;"></th></tr></thead>
+                  <tbody id="tabelJadwalBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== TAHAP 3 ========== -->
+          <div class="wiz-panel d-none" id="wizPanel3">
+            <div class="wizard-step">
+              <div class="wizard-step-title" id="step3Title"><i class="bi bi-ui-radios"></i> Detail</div>
+              <div class="row g-3" id="step3Fields"></div>
+              <div id="step3OptionalBox" class="mt-2"></div>
+              <button type="button" class="btn-picker mt-2" onclick="addAdhocRow()"><i class="bi bi-plus"></i> Field tambahan bebas</button>
+              <div id="adhocContainer"></div>
+            </div>
+          </div>
+
+          <!-- ========== TAHAP 4 ========== -->
+          <div class="wiz-panel d-none" id="wizPanel4">
+            <div class="wizard-step">
+              <div class="wizard-step-title"><i class="bi bi-person-lines-fill"></i> Kontak & Lampiran</div>
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">PIC</label><input type="text" id="inputPic" list="listPic" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Kontak</label><input type="text" id="inputKontak" list="listKontak" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">File Scan</label><input type="file" id="inputFileScan" class="form-control" accept="application/pdf,image/*"></div>
+              </div>
+            </div>
+            <div class="wizard-step">
+              <div class="wizard-step-title"><i class="bi bi-check2-square"></i> Ringkasan</div>
+              <div id="ringkasanContainer" style="font-size:.85rem; color:var(--neo-text-heading); font-weight:600;"></div>
+            </div>
+          </div>
+
+          <!-- NAV: Simpan HANYA tahap 4 -->
+          <div class="wiz-nav d-flex justify-content-between">
+            <button type="button" id="btnWizBack" class="btn-guest-action d-none" style="padding:10px 22px; border-radius:999px; font-size:.85rem;" onclick="goWizardStep(wizardStep-1)"><i class="bi bi-arrow-left"></i> Kembali</button>
+            <div class="d-flex gap-2 ms-auto">
+              <button type="button" id="btnWizNext" class="dsc-btn-primary" style="margin-bottom:0;" onclick="goWizardStep(wizardStep+1)">Lanjut <i class="bi bi-arrow-right"></i></button>
+              <button type="submit" id="btnSubmit" class="dsc-btn-primary d-none" style="margin-bottom:0;"><i class="bi bi-save-fill"></i> Simpan</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL CARD PICKER ============ -->
+<div class="modal fade" id="modalCardPicker" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-outer-card modal-mid">
+      <div class="modal-inner-card">
+        <button type="button" class="wiz-close-btn" style="position:absolute; top:14px; right:14px;" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        <h6 class="fw-bold mb-2" id="pickerTitle" style="color:var(--neo-text-heading);">Pilih</h6>
+        <input type="text" id="pickerSearch" class="form-control" placeholder="Cari..." onkeyup="renderPicker()">
+        <div id="pickerGrid" class="picker-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL AUTO-FILL ============ -->
+<div class="modal fade" id="modalAutoFill" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-outer-card modal-mid">
+      <div class="modal-inner-card">
+        <button type="button" class="wiz-close-btn" style="position:absolute; top:14px; right:14px;" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        <h6 class="fw-bold mb-2" style="color:var(--neo-text-heading);">Ambil Data dari Surat Sebelumnya</h6>
+        <input type="text" id="autoFillSearch" class="form-control" placeholder="Cari pengirim/perihal..." onkeyup="renderAutoFillList()">
+        <div id="autoFillList" style="max-height:50vh; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:50vh; overflow-y:auto; margin-top:.5rem; }
+.picker-card { background:var(--neo-surface); border-radius:16px; padding:12px; box-shadow:var(--neo-shadow-flat); cursor:pointer; text-align:center; transition:all .2s; }
+.picker-card:hover { box-shadow:var(--neo-shadow-raised); transform:translateY(-2px); }
+.picker-card i { font-size:1.4rem; color:var(--neo-accent); display:block; margin-bottom:6px; }
+.picker-card .pc-name { font-size:.8rem; font-weight:800; color:var(--neo-text-heading); }
+.picker-card .pc-desc { font-size:.68rem; color:var(--neo-text-sub); font-weight:600; }
+.autofill-item { background:var(--neo-surface); border-radius:12px; padding:10px 12px; box-shadow:var(--neo-shadow-flat); margin-bottom:8px; cursor:pointer; }
+.autofill-item:hover { box-shadow:var(--neo-shadow-raised); }
+</style>

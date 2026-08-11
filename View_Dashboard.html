@@ -1,0 +1,120 @@
+<section id="sec-dashboard">
+
+  <!-- ============ TOOLBAR: SEARCH + ADD ============ -->
+  <div class="action-toolbar-row">
+    <div class="toolbar-left">
+      <input type="text" id="dashSearchInput" class="search-input-clean" placeholder="Cari surat / agenda..." onkeyup="filterDashboard()">
+    </div>
+    <div class="toolbar-right">
+      <button class="dsc-btn-primary" onclick="openModalTambahSurat()">
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Surat Masuk</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ METRICS CARDS ============ -->
+  <div class="metrics-container">
+    <div class="metric-card">
+      <div class="metric-title"><i class="bi bi-envelope-paper me-1"></i> Total Surat Masuk</div>
+      <div class="metric-value" id="dashTotalSurat">0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title"><i class="bi bi-calendar-check me-1"></i> Jadwal Aktif</div>
+      <div class="metric-value" id="dashTotalJadwal">0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title"><i class="bi bi-geo-alt me-1"></i> Lokasi Kegiatan</div>
+      <div class="metric-value" id="dashTotalTempat">0</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title"><i class="bi bi-paperclip me-1"></i> Scan Terlampir</div>
+      <div class="metric-value" id="dashTotalScan">0</div>
+    </div>
+  </div>
+
+  <!-- ============ KEGIATAN HARI INI (CAROUSEL) ============ -->
+  <div class="section-header-row">
+    <h6 class="section-title">
+      <span class="section-title-icon"><i class="bi bi-calendar-day-fill"></i></span>
+      <span>Kegiatan Hari Ini</span>
+    </h6>
+    <span class="badge-status active" id="ongoingBadgeCount">0 Kegiatan</span>
+  </div>
+
+  <div class="carousel-ongoing-container" style="background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1.25rem; box-shadow: var(--neo-shadow-inset); margin-bottom: 1.75rem; position: relative; overflow: hidden;">
+    <div id="ongoingGridTrack" class="carousel-ongoing-track">
+      <!-- Rendered by JS_Render -->
+    </div>
+    <div id="ongoingCarouselDots" class="carousel-dots d-none">
+      <!-- Rendered by JS_Render -->
+    </div>
+  </div>
+
+  <!-- ============ SURAT MASUK TERBARU ============ -->
+  <div class="section-header-row">
+    <h6 class="section-title">
+      <span class="section-title-icon"><i class="bi bi-inbox-fill"></i></span>
+      <span>Surat Masuk Terbaru</span>
+    </h6>
+    <a href="javascript:void(0)" onclick="switchPage('page-surat-masuk')" style="font-size: 0.78rem; font-weight: 700; color: var(--neo-accent); text-decoration: none;">
+      Lihat Semua <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+
+  <div id="dashLoading" class="loading-container">
+    <div class="spinner-circle"><span class="spinner-icon"><i class="bi bi-arrow-repeat"></i></span></div>
+    <div class="loading-text">Memuat data surat...</div>
+  </div>
+
+  <div id="pinterestGrid" class="row g-3 d-none">
+    <!-- Rendered by JS_Render -->
+  </div>
+
+</section>
+
+<!-- Carousel-specific styles (LetterCore dashboard) -->
+<style>
+  .carousel-ongoing-track {
+    display: flex;
+    transition: transform 0.5s ease;
+  }
+  .carousel-ongoing-slide {
+    min-width: 100%;
+    flex-shrink: 0;
+    padding: 4px;
+  }
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(163, 177, 198, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .carousel-dot.active {
+    width: 22px;
+    border-radius: 10px;
+    background: var(--neo-accent);
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+  }
+  .ongoing-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--neo-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .ongoing-empty-state i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    color: rgba(163, 177, 198, 0.6);
+  }
+</style>

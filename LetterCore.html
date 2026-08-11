@@ -1,0 +1,162 @@
+<style>
+/* ============================================================================
+ * LETTERCORE - APP-SPECIFIC STYLES (KONSOLIDASI FINAL v4)
+ * ============================================================================ */
+
+/* ================= TOPBAR HEADER ================= */
+.topbar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+.topbar-title { font-size: 1.5rem; font-weight: 800; color: var(--neo-text-heading); margin-bottom: 0.25rem; }
+.topbar-subtitle { font-size: 0.8rem; color: var(--neo-text-sub); font-weight: 600; }
+.user-pill { display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; background: var(--neo-surface); border-radius: var(--neo-radius-pill); box-shadow: var(--neo-shadow-raised); transition: all 0.25s ease; }
+.user-pill:hover { box-shadow: var(--neo-shadow-raised-hover); transform: translateY(-1px); }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--neo-accent-gradient); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; box-shadow: var(--neo-shadow-inset-deep); }
+.user-info-name { font-size: 0.85rem; font-weight: 800; color: var(--neo-text-heading); line-height: 1.2; }
+.user-info-role { font-size: 0.7rem; font-weight: 700; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* ================= SECTION HEADER ================= */
+.section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+.section-title { font-size: 1.1rem; font-weight: 800; color: var(--neo-text-heading); display: flex; align-items: center; gap: 8px; margin: 0; }
+.section-title-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--neo-surface); display: inline-flex; align-items: center; justify-content: center; color: var(--neo-accent); box-shadow: var(--neo-shadow-inset); font-size: 0.9rem; }
+
+/* ================= METRICS & HERO ================= */
+.metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 1.75rem; }
+.hero-stat-card { background: var(--neo-surface); border-radius: var(--neo-radius-xl); padding: 1.75rem 2rem; box-shadow: var(--neo-shadow-raised-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: all 0.25s ease; }
+.hero-stat-card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 3px; background: var(--neo-accent-gradient); border-radius: 0 0 4px 4px; opacity: 0.7; }
+.hero-stat-card:hover { transform: translateY(-3px); box-shadow: var(--neo-shadow-raised-hover); }
+.hero-stat-label { font-size: 0.75rem; font-weight: 700; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; }
+.hero-stat-label-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--neo-surface); display: inline-flex; align-items: center; justify-content: center; color: var(--neo-accent); box-shadow: var(--neo-shadow-inset); font-size: 0.8rem; }
+.hero-stat-value { font-size: 3rem; font-weight: 800; color: var(--neo-text-heading); line-height: 1; margin: 0.75rem 0; letter-spacing: -0.03em; }
+.hero-stat-footnote { font-size: 0.78rem; color: var(--neo-text-sub); font-weight: 600; }
+
+/* ================= PINTEREST CARD ================= */
+.pinterest-card { background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1.25rem; box-shadow: var(--neo-shadow-raised); position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 170px; cursor: pointer; transition: all 0.25s ease; height: 100%; }
+.pinterest-card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.6; }
+.pinterest-card:hover { transform: translateY(-3px); box-shadow: var(--neo-shadow-raised-hover); }
+.pinterest-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; gap: 10px; }
+.pinterest-card-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: var(--neo-radius-pill); background: var(--neo-surface); color: var(--neo-accent); box-shadow: var(--neo-shadow-inset); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; }
+.pinterest-card-title { font-size: 0.95rem; font-weight: 800; color: var(--neo-text-heading); line-height: 1.35; margin: 0 0 0.5rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pinterest-card-desc { font-size: 0.78rem; color: var(--neo-text-sub); font-weight: 600; line-height: 1.4; margin: 0 0 0.75rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; }
+.pinterest-card-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid rgba(163, 177, 198, 0.2); font-size: 0.72rem; color: var(--neo-text-sub); font-weight: 700; }
+.pinterest-card-foot i { margin-right: 4px; }
+
+/* ================= AGENDA WIDGET ================= */
+.agenda-widget-item { background: var(--neo-surface); border-radius: var(--neo-radius-md); padding: 0.85rem; box-shadow: var(--neo-shadow-flat); display: flex; gap: 10px; align-items: flex-start; cursor: pointer; transition: all 0.2s ease; margin-bottom: 8px; }
+.agenda-widget-item:hover { transform: translateX(2px); box-shadow: var(--neo-shadow-raised); }
+.agenda-widget-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--neo-surface); display: flex; align-items: center; justify-content: center; color: var(--neo-accent); box-shadow: var(--neo-shadow-inset); font-size: 0.85rem; flex-shrink: 0; }
+.agenda-widget-body { flex: 1; min-width: 0; }
+.agenda-widget-title { font-size: 0.8rem; font-weight: 700; color: var(--neo-text-heading); line-height: 1.3; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.agenda-widget-meta { font-size: 0.68rem; color: var(--neo-text-sub); font-weight: 600; display: flex; gap: 8px; }
+
+/* ================= CALENDAR ================= */
+.calendar-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 12px; }
+.calendar-month-title { font-size: 1.25rem; font-weight: 800; color: var(--neo-text-heading); letter-spacing: -0.02em; margin: 0; }
+.calendar-nav-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--neo-surface); border: none; display: inline-flex; align-items: center; justify-content: center; color: var(--neo-text-sub); cursor: pointer; box-shadow: var(--neo-shadow-sm); transition: all 0.2s ease; font-size: 0.9rem; }
+.calendar-nav-btn:hover { color: var(--neo-accent); box-shadow: var(--neo-shadow-raised); transform: translateY(-1px); }
+.calendar-nav-btn:active { box-shadow: var(--neo-shadow-inset); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+.calendar-day-header { text-align: center; font-weight: 800; font-size: 0.7rem; color: var(--neo-text-sub); padding: 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.calendar-cell { background: var(--neo-surface); border-radius: var(--neo-radius-md); padding: 8px; min-height: 100px; box-shadow: var(--neo-shadow-flat); position: relative; overflow: hidden; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; }
+.calendar-cell:hover { box-shadow: var(--neo-shadow-raised); transform: translateY(-2px); }
+.calendar-cell.other-month { opacity: 0.35; }
+.calendar-cell.today { box-shadow: var(--neo-shadow-inset-deep); }
+.calendar-cell.today::after { content: ''; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--neo-accent); box-shadow: 0 0 8px rgba(102, 126, 234, 0.6); animation: navPulse 1.8s infinite ease-in-out; }
+.calendar-date-num { font-size: 0.85rem; font-weight: 800; color: var(--neo-text-heading); margin-bottom: 4px; }
+.calendar-event-chip { background: var(--neo-accent-soft); color: var(--neo-accent); font-size: 0.65rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s ease; }
+.calendar-event-chip:hover { background: var(--neo-accent); color: white; }
+
+/* ================= DISPOSISI CARD ================= */
+.disposisi-card { background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1.25rem; box-shadow: var(--neo-shadow-raised); position: relative; overflow: hidden; cursor: pointer; transition: all 0.25s ease; display: flex; flex-direction: column; height: 100%; }
+.disposisi-card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.6; }
+.disposisi-card:hover { transform: translateY(-3px); box-shadow: var(--neo-shadow-raised-hover); }
+.disposisi-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; gap: 8px; }
+.disposisi-doc-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--neo-surface); display: flex; align-items: center; justify-content: center; color: var(--neo-accent); box-shadow: var(--neo-shadow-inset); font-size: 1.1rem; flex-shrink: 0; }
+.dot-status { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; }
+
+/* ================= FORM WIZARD ================= */
+.wizard-step { background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1.5rem; box-shadow: var(--neo-shadow-raised); margin-bottom: 1rem; position: relative; overflow: hidden; }
+.wizard-step::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.5; }
+.wizard-step-title { font-size: 0.9rem; font-weight: 800; color: var(--neo-accent); display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.schedule-table { width: 100%; border-collapse: collapse; }
+.schedule-table thead th { text-align: left; font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 10px; border-bottom: 1px solid rgba(163, 177, 198, 0.3); }
+.schedule-table tbody td { padding: 8px 10px; font-size: 0.8rem; font-weight: 600; color: var(--neo-text-heading); border-bottom: 1px solid rgba(163, 177, 198, 0.15); }
+.schedule-table tbody tr:hover { background: rgba(102, 126, 234, 0.04); }
+.schedule-remove-btn { width: 26px; height: 26px; border-radius: 50%; border: none; background: var(--neo-surface); color: var(--neo-status-inactive); box-shadow: var(--neo-shadow-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-size: 0.85rem; }
+.schedule-remove-btn:hover { box-shadow: var(--neo-shadow-inset); }
+
+/* ================= DETAIL SECTIONS ================= */
+.detail-section { background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1.25rem; box-shadow: var(--neo-shadow-inset); margin-bottom: 1rem; }
+.detail-section-title { font-size: 0.75rem; font-weight: 800; color: var(--neo-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 8px; }
+.detail-field { margin-bottom: 0.65rem; }
+.detail-field-label { font-size: 0.68rem; font-weight: 700; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+.detail-field-value { font-size: 0.875rem; font-weight: 600; color: var(--neo-text-heading); line-height: 1.5; word-break: break-word; }
+
+/* ================= SCROLLBAR ================= */
+.page-content-scroll::-webkit-scrollbar { width: 8px; }
+.page-content-scroll::-webkit-scrollbar-track { background: transparent; }
+.page-content-scroll::-webkit-scrollbar-thumb { background: rgba(163, 177, 198, 0.5); border-radius: 10px; border: 2px solid var(--neo-surface); }
+.page-content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(102, 126, 234, 0.6); }
+
+/* ============================================================================
+ * MODAL: UKURAN, CENTER, FORM CONTROLS
+ * ============================================================================ */
+.modal-outer-card.modal-wide { max-width: 980px !important; width: 100% !important; }
+.modal-outer-card.modal-mid { max-width: 720px !important; width: 100% !important; }
+.modal.show { padding: 1.5rem !important; }
+input[type="checkbox"], .form-check-input { width: 3em !important; height: 1.5em !important; margin-bottom: 0 !important; border: none !important; border-radius: 999px !important; box-shadow: var(--neo-shadow-inset) !important; background: var(--neo-surface) !important; cursor: pointer !important; flex-shrink: 0; padding: 0 !important; }
+.form-check-input:checked { background: var(--neo-accent) !important; }
+.form-check.form-switch { display: flex !important; align-items: center !important; gap: 10px !important; padding-left: 0 !important; }
+.switch-card { display: flex; align-items: center; gap: 12px; background: var(--neo-surface); border-radius: 14px; padding: 10px 14px; box-shadow: var(--neo-shadow-inset); }
+input[type="date"], input[type="time"] { min-height: 46px !important; -webkit-appearance: none; appearance: none; }
+input[type="file"].form-control { padding: 0.6rem 1rem !important; min-height: 46px; }
+
+/* ============================================================================
+ * BOOTSTRAP MODAL COMPATIBILITY
+ * ============================================================================ */
+.modal:not(.show) { display: none !important; }
+.modal.show { display: flex !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; pointer-events: auto !important; z-index: 10005 !important; background: transparent !important; backdrop-filter: none !important; }
+.modal.show .modal-dialog { margin: auto !important; width: 100% !important; max-height: 92vh; }
+.modal-backdrop { z-index: 10000 !important; opacity: 1 !important; pointer-events: none !important; background-color: rgba(224, 229, 236, 0.88) !important; backdrop-filter: blur(12px) !important; }
+.modal-dialog, .modal-outer-card, .modal-inner-card, .modal-content,
+.modal input, .modal select, .modal textarea, .modal button, .modal label, .modal a { pointer-events: auto !important; opacity: 1 !important; }
+.modal-inner-card { max-height: 86vh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+
+/* ============================================================================
+ * WIZARD UX: TOPBAR STICKY (judul + indikator) & NAV STICKY — rapi, tanpa bocor
+ * ============================================================================ */
+.wiz-topbar { position: sticky; top: 0; z-index: 40; background: var(--neo-surface); padding: 0 0 10px 0; box-shadow: 0 1px 0 0 rgba(163,177,198,.28); margin-bottom: 12px; }
+.wiz-topbar .wiz-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.wiz-topbar .wiz-title { font-size: 1.05rem; font-weight: 800; color: var(--neo-text-heading); margin: 0; }
+.wiz-close-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--neo-surface); color: var(--neo-text-sub); box-shadow: var(--neo-shadow-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; transition: all .2s ease; }
+.wiz-close-btn:hover { color: var(--neo-status-inactive); box-shadow: var(--neo-shadow-inset); }
+.wiz-indicator { display: flex; gap: 8px; }
+.wiz-indicator .wiz-dot { flex: 1; text-align: center; padding: 8px 4px; border-radius: 12px; background: var(--neo-surface); box-shadow: var(--neo-shadow-inset); font-size: .7rem; font-weight: 800; color: var(--neo-text-sub); transition: all .25s; }
+.wiz-dot.active { color: var(--neo-accent); box-shadow: var(--neo-shadow-raised); }
+.wiz-dot.done { color: var(--neo-status-active); }
+.wiz-nav { position: sticky; bottom: 0; z-index: 40; background: var(--neo-surface); padding: 12px 0 2px; box-shadow: 0 -1px 0 0 rgba(163,177,198,.28); }
+.btn-picker { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 999px; border: none; background: var(--neo-surface); color: var(--neo-accent); font-weight: 800; font-size: .75rem; box-shadow: var(--neo-shadow-flat); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.btn-picker:hover { box-shadow: var(--neo-shadow-raised); transform: translateY(-1px); }
+.field-hint { font-size: .68rem; color: var(--neo-text-muted); font-weight: 600; margin-top: 3px; }
+
+/* ============================================================================
+ * TRANSISI & ANIMASI
+ * ============================================================================ */
+@keyframes neoModalIn { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.modal.show .modal-outer-card { animation: neoModalIn .3s cubic-bezier(.2,.8,.3,1); }
+@keyframes neoFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.page-section.active { animation: neoFadeIn .3s ease; }
+.wiz-panel { animation: neoFadeIn .25s ease; }
+@keyframes neoCardIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+.pinterest-card, .disposisi-card, .agenda-widget-item { animation: neoCardIn .35s ease both; }
+
+/* ============================================================================
+ * RESPONSIVE
+ * ============================================================================ */
+@media (max-width: 1200px) { .hero-stat-value { font-size: 2.25rem; } }
+@media (max-width: 768px) {
+  .calendar-grid { gap: 6px; }
+  .calendar-cell { min-height: 80px; padding: 6px; }
+  .calendar-date-num { font-size: 0.75rem; }
+  .calendar-event-chip { font-size: 0.6rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+}
+</style>

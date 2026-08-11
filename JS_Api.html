@@ -1,0 +1,121 @@
+<script>
+/**
+ * ============================================================================
+ * LETTERCORE - API CALLS (Performance: paralel, cache, enum lokal)
+ * ============================================================================
+ */
+
+/* ========== BOOT: core & master PARALEL; render begitu core tiba ========== */
+function loadAllData() {
+  if (typeof neoProgress === 'function') neoProgress(true);
+
+  UIHelper.callApi('apiLoadCore', [], function (core) {
+    rawDataSurat = core.surat || [];
+    kategoriList = core.kategori || [];
+    ekspedisiMap = core.ekspedisi || {};
+    if (typeof populateKategoriSelect === 'function') populateKategoriSelect();
+    deriveEnumLists();
+    refreshAllUI();
+    if (typeof neoProgress === 'function') neoProgress(false);
+  }, function (err) {
+    console.error('[loadAllData] Gagal:', err);
+    rawDataSurat = [];
+    refreshAllUI();
+    if (typeof neoProgress === 'function') neoProgress(false);
+  }, true);
+
+  /* Master menyusul di latar belakang (cache server) */
+  UIHelper.callApi('apiLoadMaster', [], function (m) {
+    masterOrang = m.masterOrang || [];
+    masterAset = {};
+    (m.masterAset || []).forEach(function (a) { var j = a['jenis'] || 'lain'; if (!masterAset[j]) masterAset[j] = []; masterAset[j].push(a); });
+  }, function () {}, true);
+}
+
+/* ========== REFRESH CORE: setelah aksi (ringan, tanpa loader) ========== */
+function refreshCoreData() {
+  if (typeof neoProgress === 'function') neoProgress(true);
+  UIHelper.callApi('apiLoadCore', [], function (core) {
+    rawDataSurat = core.surat || [];
+    kategoriList = core.kategori || [];
+    ekspedisiMap = core.ekspedisi || {};
+    if (typeof populateKategoriSelect === 'function') populateKategoriSelect();
+    deriveEnumLists();
+    refreshAllUI();
+    if (typeof neoProgress === 'function') neoProgress(false);
+  }, function (err) {
+    console.error('[refreshCoreData] Gagal:', err);
+    if (typeof neoProgress === 'function') neoProgress(false);
+  }, true);
+}
+
+/* ========== REFRESH MASTER (setelah simpan kategori/field) ========== */
+function refreshMasterData() {
+  UIHelper.callApi('apiGetKategoriList', [], function (d) {
+    kategoriList = d || [];
+    if (typeof populateKategoriSelect === 'function') populateKategoriSelect();
+  }, function () {}, true);
+}
+
+/* ========== ENUM LOKAL: dihitung dari data yang sudah ada (0 panggilan) ========== */
+function deriveEnumLists() {
+  var uniq = function (key) {
+    var s = {};
+    rawDataSurat.forEach(function (o) { if (o[key]) s[o[key]] = 1; });
+    return Object.keys(s);
+  };
+  var tempat = {};
+  rawDataSurat.forEach(function (s) {
+    (s.jadwalList || []).forEach(function (j) { if (j.tempatKegiatan) tempat[j.tempatKegiatan] = 1; });
+  });
+  populateDatalist('listPengirim', uniq('pengirim'));
+  populateDatalist('listTujuan', uniq('tujuan'));
+  populateDatalist('listPerihal', uniq('perihal'));
+  populateDatalist('listTempatKegiatan', Object.keys(tempat));
+  populateDatalist('listPic', uniq('pic'));
+  populateDatalist('listKontak', uniq('kontak'));
+}
+
+function populateDatalist(id, items) {
+  var el = document.getElementById(id);
+  if (!el || !items) return;
+  el.innerHTML = '';
+  items.forEach(function (item) {
+    if (item) {
+      var opt = document.createElement('option');
+      opt.value = item;
+      el.appendChild(opt);
+    }
+  });
+}
+
+function refreshAllUI() {
+  if (typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
+  if (typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
+  if (typeof renderSidebarAgenda === 'function') renderSidebarAgenda();
+  var kal = document.getElementById('page-kalendar');
+  if (kal && kal.classList.contains('active') && typeof renderConventionalCalendar === 'function') {
+    renderConventionalCalendar();
+  }
+  var disp = document.getElementById('page-disposisi');
+  if (disp && disp.classList.contains('active') && typeof renderDisposisiCards === 'function') {
+    renderDisposisiCards();
+  }
+}
+</script>
+
+<script>
+/* ============ STATE WIZARD & MASTER (global) ============ */
+var kategoriList = [], masterAset = {}, masterOrang = [];
+var currentSchema = [], customFieldValues = {}, repeaterValues = {}, wizardStep = 1;
+</script>
+
+<script>
+var ekspedisiMap = {};
+var TAHAP_ORDER = ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','diterima','dibatalkan','diaktifkan_kembali'];
+var TAHAP_LABEL = { diinput:'Diinput', disposisi_dibuat:'Disposisi dibuat', tercetak:'Tercetak', keputusan:'Keputusan pimpinan', balasan:'Balasan dibuat', diterima:'Diterima pemohon', dibatalkan:'Dibatalkan', diaktifkan_kembali:'Diaktifkan kembali' };
+
+function loadEkspedisiMap() {
+  UIHelper.callApi('apiGetEkspedisiAll', [], function (d) { ekspedisiMap = d || {}; }, function () {}, true);
+}
+</script>

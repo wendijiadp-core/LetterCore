@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Letter Core — Sistem Persuratan Digital</title>
+
+  <!-- External Libraries -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Internal Styles -->
+  <?!= include('AppStyle'); ?>
+  <?!= include('LetterCore'); ?>
+
+  <!-- Dev Mode Styles -->
+  <style>
+    .dev-mode-banner {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #78350f;
+      padding: 6px 16px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+    }
+    body.dev-mode-active .dsc-wrapper {
+      padding-top: calc(2rem + 28px) !important;
+    }
+    .dev-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: var(--neo-surface);
+      border-radius: var(--neo-radius-pill);
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #d97706;
+      box-shadow: var(--neo-shadow-inset);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+
+  <!-- Inject Data -->
+  <script>
+    var currentUser = <?!= JSON.stringify(currentUser || {}) ?>;
+    var launcherUrl = '<?!= launcherUrl ?>';
+    var isFromSession = <?!= isFromSession ? 'true' : 'false' ?>;
+    var isDevBypass = <?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? 'true' : 'false' ?>;
+
+    if ((!currentUser || !currentUser.username) && !isDevBypass) {
+      setTimeout(function() { window.location.href = launcherUrl; }, 500);
+    }
+    window.currentUserSSO = currentUser;
+    window.isDevBypass = isDevBypass;
+  </script>
+</head>
+
+<body class="<?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? 'dev-mode-active' : '' ?>">
+
+  <!-- Dev Mode Banner -->
+  <?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? `
+  <div class="dev-mode-banner">
+    <i class="bi bi-bug-fill me-1"></i>
+    DEVELOPER MODE — SSO Bypass Aktif. Ubah <b>BYPASS_SSO</b> di Config.gs untuk mematikan.
+  </div>
+  ` : '' ?>
+
+  <div class="dsc-wrapper">
+    
+    <!-- ================= LEFT SIDEBAR ================= -->
+    <aside class="dsc-sidebar">
+      <div class="sidebar-brand-wrapper">
+        <div class="brand-logo-box">
+          <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100">
+            <i class="bi bi-envelope-paper-fill" style="font-size: 2rem; color: var(--neo-accent);"></i>
+            <span class="fw-bold" style="font-size: 1rem; color: var(--neo-text-heading); margin-top: 6px;">Letter Core</span>
+          </div>
+        </div>
+        <div class="division-badge">Sistem Persuratan Digital</div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Menu Navigasi -->
+      <div class="sidebar-menu d-flex flex-column gap-1">
+        <div class="nav-link active" onclick="switchPage('page-dashboard')" id="nav-page-dashboard" role="button">
+          <div class="nav-icon-box"><i class="bi bi-house-door-fill"></i></div>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-link" onclick="switchPage('page-surat-masuk')" id="nav-page-surat-masuk" role="button">
+          <div class="nav-icon-box"><i class="bi bi-inbox-fill"></i></div>
+          <span>Surat Masuk</span>
+        </div>
+        <div class="nav-link" onclick="switchPage('page-kalendar')" id="nav-page-kalendar" role="button">
+          <div class="nav-icon-box"><i class="bi bi-calendar-event-fill"></i></div>
+          <span>Kalender Agenda</span>
+        </div>
+        <div class="nav-link" onclick="switchPage('page-disposisi')" id="nav-page-disposisi" role="button">
+          <div class="nav-icon-box"><i class="bi bi-file-earmark-word-fill"></i></div>
+          <span>Lembar Disposisi</span>
+        </div>
+      </div>
+
+      <div style="margin-top: auto;">
+        <div class="sidebar-divider"></div>
+        <div class="nav-link" onclick="handleLogout()" role="button">
+          <div class="nav-icon-box" style="color: var(--neo-status-inactive);"><i class="bi bi-box-arrow-right"></i></div>
+          <span style="color: var(--neo-status-inactive);">Keluar</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <div class="dsc-content">
+      <div class="dsc-card">
+        
+        <!-- Header -->
+        <div class="topbar-header">
+          <div>
+            <h1 class="topbar-title" id="pageTitle">Dashboard</h1>
+            <div class="topbar-subtitle" id="pageSubtitle">Overview sistem arsip & agenda kegiatan</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? `
+            <div class="dev-mode-badge">
+              <i class="bi bi-bug-fill"></i><span>DEV MODE</span>
+            </div>
+            ` : '' ?>
+            <div class="user-pill">
+              <div class="user-avatar"><?!= (currentUser.fullName || 'U').charAt(0).toUpperCase() ?></div>
+              <div>
+                <div class="user-info-name"><?!= currentUser.fullName || 'User' ?></div>
+                <div class="user-info-role"><?!= (currentUser.role || 'USER') ?></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="page-content-scroll" style="flex-grow: 1; overflow-y: auto; position: relative; min-height: 0;">
+          <div id="page-dashboard" class="page-section active"><?!= include('View_Dashboard'); ?></div>
+          <div id="page-surat-masuk" class="page-section d-none"><?!= include('View_SuratMasuk'); ?></div>
+          <div id="page-kalendar" class="page-section d-none"><?!= include('View_Kalender'); ?></div>
+          <div id="page-disposisi" class="page-section d-none"><?!= include('View_Disposisi'); ?></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= RIGHT SIDEBAR ================= -->
+    <aside class="dsc-sidebar" style="width: 300px !important;">
+      
+      <!-- User Widget -->
+      <div style="background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1rem; box-shadow: var(--neo-shadow-inset); position: relative; overflow: hidden; margin-bottom: 1rem;">
+        <div style="position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.6;"></div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="user-avatar" style="width: 48px; height: 48px; font-size: 1.1rem;">
+            <?!= (currentUser.fullName || 'U').charAt(0).toUpperCase() ?>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-bold" style="font-size: 0.9rem; color: var(--neo-text-heading); line-height: 1.3;"><?!= currentUser.fullName || 'User' ?></div>
+            <div style="font-size: 0.72rem; color: var(--neo-text-sub); font-weight: 600;">@<?!= currentUser.username || 'user' ?></div>
+          </div>
+          <div class="status-indicator-box" style="width: 32px; height: 32px;">
+            <div class="pulse-dot-glowing" style="width: 10px; height: 10px;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Clock Widget -->
+      <div style="font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Waktu Realtime</div>
+      <div class="sidebar-clock-box" style="margin-bottom: 1rem;">
+        <div id="realtimeClock" class="clock-time">--:--:--</div>
+        <div id="realtimeDate" class="clock-date">-</div>
+      </div>
+
+      <!-- Agenda Widget -->
+      <div style="font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Agenda Bulan Ini</div>
+      <div id="sidebarAgendaList" class="d-flex flex-column" style="flex-grow: 1; overflow-y: auto; max-height: 340px; padding-right: 4px;">
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--neo-text-muted); font-size: 0.75rem; font-weight: 600;">
+          <div class="spinner-border spinner-border-sm" style="color: var(--neo-accent);" role="status"></div>
+          <div class="mt-2">Memuat agenda...</div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- MODALS -->
+  <?!= include('Modal_FormSuratMasuk'); ?>
+  
+  <div class="modal fade" id="modalDetailSurat" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-outer-card modal-mid">
+        <div class="modal-inner-card" style="max-height: 85vh; overflow-y: auto;">
+          <button type="button" class="modal-close-btn" data-bs-dismiss="modal" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <h6 class="fw-bold mb-3" id="detailModalTitle" style="color: var(--neo-text-heading); font-size: 1.1rem; padding-right: 30px;">
+            <i class="bi bi-file-earmark-text-fill" style="color: var(--neo-accent);"></i> Detail Surat
+          </h6>
+          <div id="detailModalBody"></div>
+          <div class="d-flex justify-content-end mt-3">
+            <button type="button" class="btn-guest-action" style="padding: 8px 20px; border-radius: var(--neo-radius-pill); font-size: 0.85rem;" data-bs-dismiss="modal">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <?!= include('UIHelper'); ?>
+  <?!= include('JS_State'); ?>
+  <?!= include('JS_Api'); ?>
+  <?!= include('JS_Render'); ?>
+  <?!= include('JS_Modals'); ?>
+
+  <script>
+    // Logout Handler
+    function handleLogout() {
+      if (window.isDevBypass) {
+        Swal.fire({ 
+          title: 'Keluar dari Dev Mode?', 
+          html: '<div class="small text-start mt-2">Untuk benar-benar logout, matikan <code>BYPASS_SSO</code> di Config.gs.</div>',
+          icon: 'info', 
+          showCancelButton: true, 
+          confirmButtonColor: '#f59e0b',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: '<i class="bi bi-arrow-clockwise me-1"></i>Reload Halaman', 
+          cancelButtonText: 'Batal'
+        }).then((r) => { if (r.isConfirmed) window.location.reload(); });
+        return;
+      }
+
+      Swal.fire({ 
+        title: 'Keluar?', 
+        text: 'Kembali ke Portal LoginCore.', 
+        icon: 'question', 
+        showCancelButton: true, 
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Keluar', 
+        cancelButtonText: 'Batal'
+      }).then((r) => {
+        if (r.isConfirmed) {
+          UIHelper.callApi('apiLogout', [{ user: currentUser }], function(res) {
+            window.location.href = (res && res.redirectUrl) || launcherUrl;
+          }, function(err) { window.location.href = launcherUrl; });
+        }
+      });
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', function() {
+      updateRealtimeClock();
+      setInterval(updateRealtimeClock, 1000);
+      
+      if (typeof loadAllData === 'function') loadAllData();
+      if (typeof loadEnumLists === 'function') loadEnumLists();
+      
+      if (!isFromSession && currentUser.fullName) {
+        setTimeout(() => {
+          if (window.isDevBypass) {
+            Swal.fire({ 
+              toast: true, position: 'top-end', icon: 'warning', 
+              title: '⚠️ Developer Mode Aktif',
+              html: '<div class="small">SSO bypass. User: <b>' + currentUser.fullName + '</b></div>',
+              showConfirmButton: false, timer: 4000
+            });
+          } else {
+            Swal.fire({ 
+              toast: true, position: 'top-end', icon: 'success', 
+              title: 'Selamat Datang, ' + currentUser.fullName.split(' ')[0] + '!', 
+              showConfirmButton: false, timer: 2500
+            });
+          }
+        }, 500);
+      }
+    });
+
+    function updateRealtimeClock() {
+      const now = new Date();
+      const clockEl = document.getElementById('realtimeClock');
+      const dateEl = document.getElementById('realtimeDate');
+      if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+      if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function switchPage(pageId) {
+      document.querySelectorAll('.page-section').forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('d-none');
+      });
+      const target = document.getElementById(pageId);
+      if (target) { target.classList.remove('d-none'); target.classList.add('active'); }
+
+      document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+      const navBtn = document.getElementById('nav-' + pageId);
+      if (navBtn) navBtn.classList.add('active');
+      
+      const titles = {
+        'page-dashboard': { title: 'Dashboard', sub: 'Overview sistem arsip & agenda kegiatan' },
+        'page-surat-masuk': { title: 'Surat Masuk', sub: 'Kelola arsip persuratan dan agenda' },
+        'page-kalendar': { title: 'Kalender Agenda', sub: 'Jadwal kegiatan bulanan interaktif' },
+        'page-disposisi': { title: 'Lembar Disposisi', sub: 'Arsip dokumen disposisi otomatis' }
+      };
+      const info = titles[pageId] || { title: 'Letter Core', sub: '' };
+      document.getElementById('pageTitle').innerText = info.title;
+      document.getElementById('pageSubtitle').innerText = info.sub;
+
+      try {
+        if (pageId === 'page-kalendar' && typeof renderConventionalCalendar === 'function') renderConventionalCalendar();
+        if (pageId === 'page-surat-masuk' && typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
+        if (pageId === 'page-dashboard' && typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
+        if (pageId === 'page-disposisi' && typeof renderDisposisiCards === 'function') renderDisposisiCards();
+      } catch (e) { console.error('[switchPage]', e); }
+    }
+  </script>
+</body>
+</html>
