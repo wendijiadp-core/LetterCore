@@ -56,7 +56,6 @@ var Disposisi = (function () {
         doc.saveAndClose();
         try { newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
 
-        // Catat/refresh baris disposisi
         var s = _sheet(), h = _h(s), data = s.getDataRange().getValues();
         var found = -1;
         for (var i = 1; i < data.length; i++) if (String(data[i][h.indexOf('id_surat')]).trim() === String(suratData.idSurat).trim()) { found = i + 1; break; }
@@ -74,7 +73,6 @@ var Disposisi = (function () {
       }
     },
 
-    /** Keputusan pimpinan setelah lembar kembali */
     catatKeputusan: function (p) {
       try {
         var s = _sheet(), h = _h(s), data = s.getDataRange().getValues();
@@ -87,7 +85,14 @@ var Disposisi = (function () {
         s.getRange(row, h.indexOf('tenggat') + 1).setValue("'" + (p.tenggat || ''));
         s.getRange(row, h.indexOf('dicatat_oleh') + 1).setValue(_actor(p.user));
         s.getRange(row, h.indexOf('updated_at') + 1).setValue(_now());
+        
         Ekspedisi.catat(p.idSurat, 'keputusan', 'Keputusan pimpinan dicatat', (p.perluBalasan ? 'Perlu balasan: ' + (p.jenisBalasan || '-') : 'Tidak perlu balasan') + (p.keputusan ? ' — ' + p.keputusan : ''), _actor(p.user));
+        
+        // AUTO-LOG SELESAI bila tidak perlu balasan
+        if (!p.perluBalasan) {
+          Ekspedisi.catat(p.idSurat, 'selesai_tanpa_balasan', 'Proses selesai — tidak perlu balasan', '', _actor(p.user));
+        }
+        
         return { success: true, message: 'Keputusan disposisi tersimpan.' };
       } catch (e) { return { success: false, message: e.toString() }; }
     },

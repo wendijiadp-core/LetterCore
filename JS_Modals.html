@@ -248,7 +248,8 @@ function eksekusiTambahJadwal() {
   if (!dates.length) { UIHelper.showToast('Pilih tanggal dulu', false); return; }
   var mode = el('selectDateMode').value;
   var tempat = resolveTempat();
-  var wM = el('inputWaktuMulai').value, wS = el('inputWaktuSelesai').value;
+  var wM = el('inputWaktuMulai').value;
+  var wS = el('chkSampaiSelesai').checked ? 'selesai' : el('inputWaktuSelesai').value;
   var push = function (d) { var fmt = flatpickr.formatDate(d, 'Y-m-d'); jadwalListState.push({ tglMulai: fmt, tglSelesai: fmt, tglKegiatan: fmt, waktuMulai: wM, waktuSelesai: wS, waktuKegiatan: wM + ' - ' + wS, tempatKegiatan: tempat }); };
   if (mode === 'range' && dates.length === 2) { var cur = new Date(dates[0]); while (cur <= dates[1]) { push(new Date(cur)); cur.setDate(cur.getDate() + 1); } }
   else dates.forEach(push);
@@ -419,6 +420,21 @@ function openModalDetailSurat(id) {
 }
 
 /* ================= PEMBATALAN (dengan alasan) ================= */
+/* ===== Helper: buat timestamp lokal ===== */
+function _localTimestamp() {
+  var n = new Date();
+  var pad = function (v) { return ('0' + v).slice(-2); };
+  return n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + ' ' +
+         pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+}
+
+/* ===== Helper: actor string ===== */
+function _actorLocal() {
+  if (!currentUser) return 'Sistem';
+  return (currentUser.fullName || currentUser.username || 'Sistem') + ' (@' + (currentUser.username || '-') + ')';
+}
+
+/* ===== BATALKAN: update state lokal sinkron ===== */
 function openDialogBatalkan(id) {
   neoEnsureCss();
   var ov = document.createElement('div');
@@ -446,21 +462,56 @@ function openDialogBatalkan(id) {
     Loader.show('Menandai dibatalkan...');
     UIHelper.callApi('apiBatalkanSurat', [{ idSurat: id, catatan: alasan, user: currentUser }], function (r) {
       Loader.hide(); Notify.show('success', '', r.message);
+
+      /* ===== UPDATE STATE LOKAL SECARA SINKRON ===== */
+      var s = rawDataSurat.find(function (x) { return x.idSurat === id; });
+      if (s) s.status = 'BATAL';
+      if (!ekspedisiMap[id]) ekspedisiMap[id] = { tahap: '', ts: '', riwayat: [] };
+      ekspedisiMap[id].tahap = 'dibatalkan';
+      ekspedisiMap[id].ts = _localTimestamp();
+      ekspedisiMap[id].riwayat.push({
+        tahap: 'dibatalkan',
+        judul: 'Kegiatan/surat dibatalkan',
+        catatan: alasan,
+        aktor: _actorLocal(),
+        timestamp: _localTimestamp()
+      });
+
+      /* ===== RENDER LANGSUNG DENGAN DATA LOKAL ===== */
+      renderEkspedisiInline(ekspedisiMap[id].riwayat);
+
+      /* Background refresh untuk konsistensi */
       refreshCoreData();
-      var dOpen = document.getElementById('ekspedisiDetail') && !document.getElementById('ekspedisiDetail').classList.contains('d-none');
-      if (dOpen && currentEkspedisiId === id) openEkspedisi(id);
     }, function (e) { Loader.hide(); Notify.show('error', '', e); });
   };
   setTimeout(function () { var ta = document.getElementById('batalAlasan'); if (ta) ta.focus(); }, 100);
 }
 
+/* ===== AKTIFKAN: update state lokal sinkron ===== */
 function aksiAktifkan(id) {
   Loader.show('Mengaktifkan kembali...');
   UIHelper.callApi('apiAktifkanSurat', [{ idSurat: id, user: currentUser }], function (r) {
     Loader.hide(); Notify.show('success', '', r.message);
+
+    /* ===== UPDATE STATE LOKAL SECARA SINKRON ===== */
+    var s = rawDataSurat.find(function (x) { return x.idSurat === id; });
+    if (s) s.status = 'AKTIF';
+    if (!ekspedisiMap[id]) ekspedisiMap[id] = { tahap: '', ts: '', riwayat: [] };
+    ekspedisiMap[id].tahap = 'diaktifkan_kembali';
+    ekspedisiMap[id].ts = _localTimestamp();
+    ekspedisiMap[id].riwayat.push({
+      tahap: 'diaktifkan_kembali',
+      judul: 'Surat diaktifkan kembali',
+      catatan: '',
+      aktor: _actorLocal(),
+      timestamp: _localTimestamp()
+    });
+
+    /* ===== RENDER LANGSUNG DENGAN DATA LOKAL ===== */
+    renderEkspedisiInline(ekspedisiMap[id].riwayat);
+
+    /* Background refresh untuk konsistensi */
     refreshCoreData();
-    var dOpen = document.getElementById('ekspedisiDetail') && !document.getElementById('ekspedisiDetail').classList.contains('d-none');
-    if (dOpen && currentEkspedisiId === id) openEkspedisi(id);
   }, function (e) { Loader.hide(); Notify.show('error', '', e); });
 }
 
@@ -539,9 +590,15 @@ function renderEkspedisiInline(riwayat) {
   if (tEl) tEl.innerHTML = '<i class="bi bi-box-seam" style="color:var(--neo-accent);"></i> Ekspedisi: ' + UIHelper.escapeHtml(s ? s.agendaNomor + ' — ' + s.perihal : currentEkspedisiId);
 
   var done = {}; (riwayat || []).forEach(function (r) { done[r.tahap] = r; });
+
+  /* Status batal dibaca LANGSUNG dari riwayat (tidak menunggu reload data) */
+  var batalNow = (s && s.status === 'BATAL') || (!!done['dibatalkan'] && !done['diaktifkan_kembali']);
+
   var tl = document.getElementById('ekspedisiTimeline');
   if (tl) {
     tl.innerHTML = TAHAP_ORDER.map(function (t, i) {
+      if ((t === 'balasan' || t === 'diterima') && done['selesai_tanpa_balasan']) return '';
+      if (t === 'selesai_tanpa_balasan' && (done['balasan'] || done['diterima'])) return '';
       var r = done[t], last = i === TAHAP_ORDER.length - 1;
       return '<div class="tl-item ' + (r ? '' : 'future') + '">' + (last ? '' : '<div class="tl-line"></div>') +
         '<div class="tl-dot"></div><div><div class="tl-judul">' + (TAHAP_LABEL[t] || t) + '</div>' +
@@ -550,28 +607,47 @@ function renderEkspedisiInline(riwayat) {
   }
 
   var act = '';
-  if (s && s.status === 'BATAL') {
+  if (batalNow) {
     var rb = (riwayat || []).filter(function (r) { return r.tahap === 'dibatalkan'; })[0];
     act = '<div class="wizard-step"><div class="wizard-step-title" style="color:var(--neo-status-inactive);"><i class="bi bi-x-octagon-fill"></i> Dibatalkan</div>' +
       '<div style="font-size:.8rem; color:var(--neo-text-sub); font-weight:600;">' + (rb ? UIHelper.escapeHtml(rb.timestamp + ' · ' + rb.aktor + (rb.catatan ? ' — ' + rb.catatan : '')) : 'Tanpa catatan.') + '</div>' +
-      '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiAktifkan(\'' + s.idSurat + '\')"><i class="bi bi-arrow-counterclockwise"></i> Aktifkan Kembali</button></div></div>';
+      '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiAktifkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-arrow-counterclockwise"></i> Aktifkan Kembali</button></div></div>';
+  } else if (done['selesai_tanpa_balasan'] || done['diterima']) {
+    act += '<span class="badge-status active">Ekspedisi selesai ✔</span>';
+    act += '<div class="text-end mt-2"><button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-status-inactive);" onclick="openDialogBatalkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-x-octagon"></i> Batalkan Kegiatan</button></div>';
   } else {
     if (!done['tercetak']) act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiTercetak()"><i class="bi bi-printer"></i> Tandai Tercetak & Diserahkan</button>';
     if (done['tercetak'] && !done['keputusan']) {
       act += '<div class="wizard-step"><div class="wizard-step-title"><i class="bi bi-pencil-square"></i> Catat Keputusan Pimpinan</div>' +
         '<textarea id="kepText" class="form-control" rows="2" placeholder="Instruksi pimpinan..."></textarea>' +
-        '<div class="row g-2">' +
-        '<div class="col-12"><div class="switch-card"><input class="form-check-input" type="checkbox" id="kepPerluBalasan"><label class="form-check-label" style="font-size:.78rem; font-weight:700; margin:0;">Perlu surat balasan</label></div></div>' +
+        '<div class="row g-2 mt-1">' +
+        '<div class="col-12" style="font-size:.72rem; font-weight:700; color:var(--neo-text-sub); text-transform:uppercase; margin-bottom:4px;">Apakah perlu surat balasan? <span style="color:var(--neo-status-inactive);">*</span></div>' +
+        '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluY" value="Y"><label class="form-check-label" for="kepPerluY" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-status-active);"><i class="bi bi-check-circle-fill me-1"></i> Ya, perlu balasan</label></div></div>' +
+        '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluT" value="T"><label class="form-check-label" for="kepPerluT" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-text-sub);"><i class="bi bi-x-circle me-1"></i> Tidak perlu</label></div></div>' +
+        '</div>' +
+        '<div id="kepBalasanFields" class="row g-2 mt-2 d-none">' +
         '<div class="col-md-6"><input id="kepJenis" class="form-control" placeholder="Jenis balasan (mis. Surat Jalan)"></div>' +
-        '<div class="col-md-6"><input type="date" id="kepTenggat" class="form-control"></div></div>' +
+        '<div class="col-md-6"><input type="date" id="kepTenggat" class="form-control"></div>' +
+        '</div>' +
         '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="submitKeputusan()"><i class="bi bi-save"></i> Simpan Keputusan</button></div></div>';
     }
-    if (done['keputusan'] && !done['diterima']) act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
-    if (done['diterima']) act += '<span class="badge-status active">Ekspedisi selesai ✔</span>';
+    if (done['keputusan'] && !done['balasan'] && !done['selesai_tanpa_balasan']) {
+      act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
+    }
     act += '<div class="text-end mt-2"><button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-status-inactive);" onclick="openDialogBatalkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-x-octagon"></i> Batalkan Kegiatan</button></div>';
   }
   var aEl = document.getElementById('ekspedisiAction');
   if (aEl) aEl.innerHTML = act;
+
+  setTimeout(function () {
+    var radios = document.querySelectorAll('input[name="kepPerluBalasan"]');
+    var box = document.getElementById('kepBalasanFields');
+    if (box) radios.forEach(function (r) {
+      r.addEventListener('change', function () {
+        box.classList.toggle('d-none', !(r.value === 'Y' && r.checked));
+      });
+    });
+  }, 50);
 }
 
 function _refreshEkspedisi() {
@@ -587,13 +663,21 @@ function aksiTercetak() {
   UIHelper.callApi('apiTandaiTercetak', [{ idSurat: currentEkspedisiId, user: currentUser }], function (r) { Loader.hide(); UIHelper.showToast(r.message, true); _refreshEkspedisi(); }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
 }
 function submitKeputusan() {
+  var radios = document.querySelectorAll('input[name="kepPerluBalasan"]');
+  var selected = null;
+  radios.forEach(function (r) { if (r.checked) selected = r.value; });
+  if (!selected) {
+    Notify.show('warning', '', 'Pilih dulu: apakah perlu balasan atau tidak?');
+    return;
+  }
+  var perluBalasan = selected === 'Y';
   Loader.show('Menyimpan keputusan...');
   UIHelper.callApi('apiCatatKeputusanDisposisi', [{
     idSurat: currentEkspedisiId,
     keputusan: (document.getElementById('kepText') || {}).value || '',
-    perluBalasan: (document.getElementById('kepPerluBalasan') || {}).checked || false,
-    jenisBalasan: (document.getElementById('kepJenis') || {}).value || '',
-    tenggat: (document.getElementById('kepTenggat') || {}).value || '',
+    perluBalasan: perluBalasan,
+    jenisBalasan: perluBalasan ? ((document.getElementById('kepJenis') || {}).value || '') : '',
+    tenggat: perluBalasan ? ((document.getElementById('kepTenggat') || {}).value || '') : '',
     user: currentUser
   }], function (r) { Loader.hide(); UIHelper.showToast(r.message, true); _refreshEkspedisi(); }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
 }

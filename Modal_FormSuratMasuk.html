@@ -1,10 +1,9 @@
-<!-- ============ MODAL FORM SURAT MASUK — WIZARD METADATA-DRIVEN ============ -->
+<!-- ============ MODAL FORM SURAT MASUK ============ -->
 <div class="modal fade" id="modalTambahSurat" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-outer-card modal-wide">
       <div class="modal-inner-card">
 
-        <!-- TOPBAR STICKY -->
         <div class="wiz-topbar">
           <div class="wiz-title-row">
             <h6 class="wiz-title" id="modalSuratTitle"><i class="bi bi-envelope-plus-fill" style="color:var(--neo-accent);"></i> Catat Surat Masuk Baru</h6>
@@ -21,14 +20,14 @@
         <form id="formSurat" onsubmit="submitFormSurat(event); return false;">
           <input type="hidden" id="formIdSurat">
 
-          <!-- ========== TAHAP 1 ========== -->
+          <!-- TAHAP 1 -->
           <div class="wiz-panel" id="wizPanel1">
             <div class="wizard-step">
-              <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="wizard-step-title" style="margin-bottom:0;"><i class="bi bi-file-earmark-text-fill"></i> Informasi Persuratan</div>
                 <button type="button" class="btn-picker" onclick="openAutoFill()"><i class="bi bi-clipboard-check"></i> Ambil dari surat sebelumnya</button>
               </div>
-              <div class="row g-3">
+              <div class="row g-4">
                 <div class="col-md-6">
                   <label class="form-label">Jenis Surat</label>
                   <select id="selectKategori" class="form-control" onchange="onKategoriChange()"></select>
@@ -55,17 +54,17 @@
             </div>
           </div>
 
-          <!-- ========== TAHAP 2 ========== -->
+          <!-- TAHAP 2 -->
           <div class="wiz-panel d-none" id="wizPanel2">
             <div class="wizard-step">
               <div class="wizard-step-title" id="step2Title"><i class="bi bi-calendar-event-fill"></i> Kegiatan</div>
-              <div class="row g-3" id="step2Fields"></div>
-              <div id="step2OptionalBox" class="mt-2"></div>
+              <div class="row g-4" id="step2Fields"></div>
+              <div id="step2OptionalBox" class="mt-3"></div>
             </div>
             <div class="wizard-step" id="step2Jadwal">
               <div class="wizard-step-title"><i class="bi bi-clock-history"></i> Pelaksanaan</div>
-              <div class="row g-2 align-items-end">
-                <div class="col-md-3">
+              <div class="row g-3">
+                <div class="col-md-2">
                   <label class="form-label">Mode Tanggal</label>
                   <select id="selectDateMode" class="form-control" onchange="initFlatpickr()">
                     <option value="single">Tunggal</option>
@@ -75,11 +74,18 @@
                 </div>
                 <div class="col-md-3"><label class="form-label">Tanggal</label><input type="text" id="multiDatePicker" class="form-control" placeholder="Pilih..."></div>
                 <div class="col-md-2"><label class="form-label">Mulai</label><input type="time" id="inputWaktuMulai" class="form-control" value="08:00"></div>
-                <div class="col-md-2"><label class="form-label">Selesai</label><input type="time" id="inputWaktuSelesai" class="form-control" value="16:00"></div>
-                <div class="col-md-2" id="wrapTempat">
+                <div class="col-md-2">
+                  <label class="form-label">Selesai</label>
+                  <input type="time" id="inputWaktuSelesai" class="form-control" value="16:00">
+                  <div class="switch-card mt-2">
+                    <input class="form-check-input" type="checkbox" id="chkSampaiSelesai" onchange="toggleSampaiSelesai()">
+                    <label class="form-check-label" for="chkSampaiSelesai" style="font-size:.72rem; font-weight:700; margin:0;">s.d. selesai</label>
+                  </div>
+                </div>
+                <div class="col-md-3" id="wrapTempat">
                   <label class="form-label">Tempat</label>
                   <div class="d-flex gap-1">
-                    <input type="text" id="inputTempatKegiatan" list="listTempatKegiatan" class="form-control" placeholder="Tempat">
+                    <input type="text" id="inputTempatKegiatan" list="listTempatKegiatan" class="form-control" placeholder="Nama tempat / lokasi" style="min-width:0; flex:1;">
                     <button type="button" class="btn-picker" onclick="openCardPicker('tempat', function(a){ document.getElementById('inputTempatKegiatan').value = a['nama']; });"><i class="bi bi-grid-fill"></i> Pilih</button>
                   </div>
                 </div>
@@ -87,7 +93,7 @@
                   <button type="button" class="dsc-btn-primary" style="margin-bottom:0;" onclick="eksekusiTambahJadwal()"><i class="bi bi-plus-lg"></i> Tambah Jadwal</button>
                 </div>
               </div>
-              <div style="max-height:200px; overflow-y:auto; margin-top:.75rem;">
+              <div style="max-height:200px; overflow-y:auto; margin-top:.9rem;">
                 <table class="schedule-table">
                   <thead><tr><th>Tanggal</th><th>Waktu</th><th>Tempat</th><th style="width:50px;"></th></tr></thead>
                   <tbody id="tabelJadwalBody"></tbody>
@@ -96,22 +102,22 @@
             </div>
           </div>
 
-          <!-- ========== TAHAP 3 ========== -->
+          <!-- TAHAP 3 -->
           <div class="wiz-panel d-none" id="wizPanel3">
             <div class="wizard-step">
               <div class="wizard-step-title" id="step3Title"><i class="bi bi-ui-radios"></i> Detail</div>
-              <div class="row g-3" id="step3Fields"></div>
-              <div id="step3OptionalBox" class="mt-2"></div>
-              <button type="button" class="btn-picker mt-2" onclick="addAdhocRow()"><i class="bi bi-plus"></i> Field tambahan bebas</button>
+              <div class="row g-4" id="step3Fields"></div>
+              <div id="step3OptionalBox" class="mt-3"></div>
+              <button type="button" class="btn-picker mt-3" onclick="addAdhocRow()"><i class="bi bi-plus"></i> Field tambahan bebas</button>
               <div id="adhocContainer"></div>
             </div>
           </div>
 
-          <!-- ========== TAHAP 4 ========== -->
+          <!-- TAHAP 4 -->
           <div class="wiz-panel d-none" id="wizPanel4">
             <div class="wizard-step">
               <div class="wizard-step-title"><i class="bi bi-person-lines-fill"></i> Kontak & Lampiran</div>
-              <div class="row g-3">
+              <div class="row g-4">
                 <div class="col-md-4"><label class="form-label">PIC</label><input type="text" id="inputPic" list="listPic" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">Kontak</label><input type="text" id="inputKontak" list="listKontak" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">File Scan</label><input type="file" id="inputFileScan" class="form-control" accept="application/pdf,image/*"></div>
@@ -123,7 +129,6 @@
             </div>
           </div>
 
-          <!-- NAV: Simpan HANYA tahap 4 -->
           <div class="wiz-nav d-flex justify-content-between">
             <button type="button" id="btnWizBack" class="btn-guest-action d-none" style="padding:10px 22px; border-radius:999px; font-size:.85rem;" onclick="goWizardStep(wizardStep-1)"><i class="bi bi-arrow-left"></i> Kembali</button>
             <div class="d-flex gap-2 ms-auto">
@@ -164,6 +169,15 @@
     </div>
   </div>
 </div>
+
+<script>
+/* Inline & mandiri: menonaktifkan jam selesai saat "s.d. selesai" dicentang */
+function toggleSampaiSelesai() {
+  var c = document.getElementById('chkSampaiSelesai');
+  var w = document.getElementById('inputWaktuSelesai');
+  if (c && w) { w.disabled = c.checked; if (c.checked) w.value = ''; }
+}
+</script>
 
 <style>
 .picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:50vh; overflow-y:auto; margin-top:.5rem; }

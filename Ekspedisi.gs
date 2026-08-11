@@ -10,7 +10,7 @@ var Ekspedisi = (function () {
   }
   function _now() { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss'); }
   return {
-    TAHAP: ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','diterima'],
+    TAHAP: ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','diterima','selesai_tanpa_balasan'],
     catat: function (idSurat, tahap, judul, catatan, aktor) {
       try { _sheet().appendRow(['LOG-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900), idSurat, tahap, judul || '', catatan || '', aktor || 'Sistem', _now()]); return true; }
       catch (e) { return false; }
@@ -22,7 +22,6 @@ var Ekspedisi = (function () {
       out.sort(function (a, b) { return a.timestamp < b.timestamp ? -1 : 1; });
       return out;
     },
-    /** Map id_surat -> { tahap, riwayat } untuk seluruh surat (1x baca) */
     getSemua: function () {
       var data = _sheet().getDataRange().getDisplayValues();
       var map = {};

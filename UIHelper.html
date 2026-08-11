@@ -1,7 +1,7 @@
 <script>
 /**
  * ============================================================================
- * LETTERCORE - UI HELPER (Performance Edition)
+ * LETTERCORE - UI HELPER (hint scroll v2 + sticky fix + kalender CSS)
  * ============================================================================
  */
 var UIHelper = (function () {
@@ -54,28 +54,24 @@ var UIHelper = (function () {
   return { callApi: callApi, showToast: showToast, formatDateIndo: formatDateIndo, escapeHtml: escapeHtml };
 })();
 
-/* ================= CSS DASAR + PROGRESS BAR + SMOOTHNESS ================= */
+/* ================= CSS DASAR ================= */
 function neoEnsureCss() {
   if (document.getElementById('neoUiCss')) return;
   var s = document.createElement('style');
   s.id = 'neoUiCss';
   s.textContent = '' +
-    /* Progress bar tipis, tidak memblokir */
     '.neo-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:100005;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .2s;}' +
     '.neo-progress.on{opacity:1;}' +
     '.neo-progress div{width:40%;height:100%;background:var(--neo-accent-gradient);animation:neoSlide 1s infinite ease-in-out;}' +
     '@keyframes neoSlide{0%{transform:translateX(-100%);}100%{transform:translateX(350%);}}' +
-    /* Transisi modal cepat + GPU layer */
     '.modal{transition:opacity .12s linear!important;}' +
     '.modal-backdrop{transition:opacity .12s linear!important;}' +
     '.modal.show .modal-outer-card{animation:neoModalFast .16s ease-out!important;}' +
     '@keyframes neoModalFast{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}' +
     '.modal-outer-card{transform:translateZ(0);will-change:transform,opacity;}' +
-    /* Loader (hanya untuk aksi eksplisit) */
     '#neoLoader{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(224,229,236,.6);}' +
     '.neo-loader-card{background:var(--neo-surface);border-radius:24px;padding:2rem 2.75rem;box-shadow:var(--neo-shadow-raised-lg);display:flex;flex-direction:column;align-items:center;gap:12px;animation:neoPop .25s ease;}' +
     '@keyframes neoPop{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}' +
-    /* Popup & dialog */
     '.neo-swal-popup{background:var(--neo-surface)!important;border-radius:32px!important;box-shadow:var(--neo-shadow-raised-lg)!important;padding:1.5rem!important;position:relative!important;overflow:hidden!important;transform:translateZ(0);}' +
     '.neo-swal-popup::before{content:"";position:absolute;top:0;left:10%;right:10%;height:3px;background:var(--neo-accent-gradient);border-radius:0 0 4px 4px;opacity:.7;}' +
     '.neo-swal-inner{background:var(--neo-surface);border-radius:24px;box-shadow:var(--neo-shadow-inset);padding:1.75rem 1.5rem;display:flex;flex-direction:column;align-items:center;gap:10px;}' +
@@ -93,11 +89,17 @@ function neoEnsureCss() {
     '.neo-btn-cancel{color:var(--neo-status-inactive);}' +
     '.neo-btn-confirm:hover,.neo-btn-cancel:hover{box-shadow:var(--neo-shadow-raised-hover);transform:translateY(-1px);}' +
     '@keyframes neoIn{from{opacity:0;transform:translateY(10px)scale(.98);}to{opacity:1;transform:none;}}' +
-    '@keyframes neoOut{to{opacity:0;transform:translateY(-8px)scale(.98);}}';
+    '@keyframes neoOut{to{opacity:0;transform:translateY(-8px)scale(.98);}}' +
+    /* Hint scroll v2: pill melayang tengah-bawah di INDUK kontainer */
+    '.neo-scroll-parent{position:relative;}' +
+    '.neo-scroll-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--neo-surface);border-radius:999px;font-size:.65rem;font-weight:800;color:var(--neo-text-sub);box-shadow:var(--neo-shadow-raised);pointer-events:none;opacity:0;transition:opacity .35s ease;z-index:30;}' +
+    '.neo-scroll-hint.show{opacity:.95;}' +
+    '.neo-scroll-hint i{color:var(--neo-accent);animation:neoChevDn 1.4s infinite ease-in-out;}' +
+    '@keyframes neoChevDn{0%,100%{transform:translateY(0);}50%{transform:translateY(3px);}}';
   document.head.appendChild(s);
 }
 
-/* ================= CSS KEJELASAN UX ================= */
+/* ================= CSS UX + VISUAL + STICKY + KALENDER ================= */
 function neoEnsureUxCss() {
   if (document.getElementById('neoUxCss')) return;
   var s = document.createElement('style');
@@ -105,12 +107,60 @@ function neoEnsureUxCss() {
   s.textContent = '' +
     'input.form-check-input[type="checkbox"]{width:1.45em!important;height:1.45em!important;border-radius:9px!important;border:none!important;background:var(--neo-surface)!important;box-shadow:var(--neo-shadow-inset)!important;appearance:none;-webkit-appearance:none;cursor:pointer;flex-shrink:0;}' +
     'input.form-check-input[type="checkbox"]:checked{background:var(--neo-accent)!important;background-image:url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'%3e%3cpath fill=\'none\' stroke=\'white\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'3\' d=\'M4 8.5l2.5 2.5L12 5.5\'/%3e%3c/svg%3e")!important;background-repeat:no-repeat!important;background-position:center!important;background-size:90%!important;box-shadow:var(--neo-shadow-raised)!important;}' +
+    'input.form-check-input[type="radio"]{width:1.3em!important;height:1.3em!important;border:none!important;background:var(--neo-surface)!important;box-shadow:var(--neo-shadow-inset)!important;}' +
+    'input.form-check-input[type="radio"]:checked{background:var(--neo-accent)!important;box-shadow:var(--neo-shadow-raised)!important;}' +
     'textarea.form-control{resize:none!important;overflow:hidden;}' +
-    '.search-input-clean{min-width:240px;max-width:560px;}';
+    '.search-input-clean{min-width:240px;max-width:560px;}' +
+    '*{scrollbar-width:thin;scrollbar-color:rgba(102,126,234,.35) transparent;}' +
+    '*::-webkit-scrollbar{width:6px;height:6px;}' +
+    '*::-webkit-scrollbar-track{background:transparent;}' +
+    '*::-webkit-scrollbar-thumb{background:rgba(102,126,234,.35);border-radius:999px;}' +
+    '*::-webkit-scrollbar-thumb:hover{background:rgba(102,126,234,.55);}' +
+
+    /* Sticky wizard: solid, tidak bocor */
+    '.wiz-topbar{position:sticky;top:0;z-index:40;background:var(--neo-surface);border-radius:16px 16px 0 0;box-shadow:0 8px 14px -8px rgba(163,177,198,.45);}' +
+    '.wiz-nav{position:sticky;bottom:0;z-index:40;background:var(--neo-surface);border-radius:0 0 16px 16px;box-shadow:0 -8px 14px -8px rgba(163,177,198,.45);padding-top:.5rem;}' +
+
+    /* Kalender: cell tetap + scroll internal */
+    '.calendar-cell{height:112px;min-height:112px;position:relative;overflow:hidden;}' +
+    '.calendar-cell .cal-events{position:absolute;top:30px;left:6px;right:6px;bottom:6px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:2px;}' +
+    '.calendar-event-chip{flex-shrink:0;}' +
+    /* Penanda hari ini: garis gradien tengah-atas */
+    '.calendar-cell.today::before{display:none!important;}' +
+    '.calendar-cell.today::after{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:32px;height:4px;border-radius:999px;background:var(--neo-accent-gradient);box-shadow:0 0 8px rgba(102,126,234,.55);}' +
+    '.calendar-cell.today{box-shadow:var(--neo-shadow-raised);}' +
+    /* Chip libur nasional */
+    '.calendar-event-holiday{background:rgba(245,101,101,.12)!important;color:var(--neo-status-inactive)!important;font-weight:700;}' +
+
+    '.hero-stat-card::before,.pinterest-card::before,.disposisi-card::before,.wizard-step::before{left:12%!important;right:12%!important;height:3px!important;border-radius:0 0 6px 6px!important;opacity:.55!important;}' +
+    '.hero-stat-card{min-height:150px!important;padding:1.25rem 1.5rem!important;}' +
+    '.hero-stat-value{font-size:2.8rem!important;margin:.5rem 0 .25rem!important;}' +
+    '.carousel-ongoing-slide .pinterest-card::before{display:none!important;}' +
+    '.carousel-ongoing-slide .row{align-items:stretch!important;}' +
+    '.carousel-ongoing-slide .pinterest-card{height:100%!important;}' +
+    '.dsc-btn-primary,.btn-guest-action{min-height:38px;}' +
+    '.detail-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;border:none;background:var(--neo-surface);color:var(--neo-accent);font-size:.72rem;font-weight:800;box-shadow:var(--neo-shadow-raised);cursor:pointer;transition:all .2s ease;font-family:inherit;}' +
+    '.detail-pill:hover{box-shadow:var(--neo-shadow-raised-hover);transform:translateY(-1px);}' +
+    '.followup-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}' +
+    '.followup-card{background:var(--neo-surface);border-radius:18px;padding:14px;box-shadow:var(--neo-shadow-flat);cursor:pointer;transition:all .2s ease;}' +
+    '.followup-card:hover{box-shadow:var(--neo-shadow-raised);transform:translateY(-2px);}' +
+    '.followup-card.urgent{box-shadow:var(--neo-shadow-flat),inset 3px 0 0 var(--neo-status-inactive);}' +
+    '.fu-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}' +
+    '.fu-title{font-size:.82rem;font-weight:800;color:var(--neo-text-heading);margin:6px 0 2px;}' +
+    '.fu-meta{font-size:.7rem;color:var(--neo-text-sub);font-weight:600;}' +
+    '.followup-empty{background:var(--neo-surface);border-radius:18px;padding:18px;box-shadow:var(--neo-shadow-inset);color:var(--neo-status-active);font-weight:700;font-size:.85rem;text-align:center;}' +
+    '.agenda-widget-sub{font-size:.68rem;color:var(--neo-text-sub);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;}' +
+    '.pinterest-card-batal{opacity:.65;}' +
+    '.pinterest-card-batal .pinterest-card-title{text-decoration:line-through;color:var(--neo-status-inactive);}' +
+    '.disposisi-card-batal{opacity:.65;border-left:4px solid var(--neo-status-inactive);}' +
+    '.agenda-item-batal{opacity:.6;}' +
+    '.agenda-item-batal .agenda-widget-title{text-decoration:line-through;}' +
+    '.calendar-event-batal{text-decoration:line-through;background:rgba(245,101,101,.15);color:var(--neo-status-inactive);}' +
+    '.calendar-event-batal:hover{background:rgba(245,101,101,.25);color:var(--neo-status-inactive);}';
   document.head.appendChild(s);
 }
 
-/* ================= PROGRESS BAR (non-blokir) ================= */
+/* ================= PROGRESS BAR ================= */
 function neoProgress(on) {
   var b = document.getElementById('neoProgressBar');
   if (on) {
@@ -147,6 +197,44 @@ function fTipeChange() {
   if (v === 'select') { w.classList.remove('d-none'); l.textContent = 'Pilihan (pisahkan koma)'; f.placeholder = 'mis. Roda dua,Roda empat'; }
   else if (v === 'repeater') { w.classList.remove('d-none'); l.textContent = 'Kolom daftar (pisahkan koma)'; f.placeholder = 'mis. nama,nip'; }
   else { w.classList.add('d-none'); }
+}
+
+/* ================= SCROLL HINT v2 (anti-loop, tahan re-render) ================= */
+function neoBindScrollHint(container) {
+  if (!container || container.__neoScrollBound) return;
+  container.__neoScrollBound = true;
+  var parent = container.parentNode;
+  if (!parent) return;
+  parent.classList.add('neo-scroll-parent');
+  var hint = document.createElement('div');
+  hint.className = 'neo-scroll-hint';
+  parent.appendChild(hint);
+
+  var lastHtml = null, lastCls = null;
+  function update() {
+    var overV = container.scrollHeight > container.clientHeight + 4;
+    var overH = container.scrollWidth > container.clientWidth + 4;
+    var html = '', cls = 'neo-scroll-hint';
+    if (overV || overH) {
+      var endV = !overV || (container.scrollTop + container.clientHeight >= container.scrollHeight - 8);
+      var endH = !overH || (container.scrollLeft + container.clientWidth >= container.scrollWidth - 8);
+      if (!(endV && endH)) {
+        html = (overH && !endH) ? '<i class="bi bi-chevron-right"></i> geser' : '<i class="bi bi-chevron-down"></i> scroll';
+        cls += ' show';
+      }
+    }
+    if (html !== lastHtml) { hint.innerHTML = html; lastHtml = html; }
+    if (cls !== lastCls) { hint.className = cls; lastCls = cls; }
+  }
+
+  container.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  new MutationObserver(function (muts) {
+    var rel = muts.some(function (m) { return !(m.target === hint || hint.contains(m.target)); });
+    if (rel) update();
+  }).observe(container, { childList: true, subtree: true });
+  setTimeout(update, 300);
+  setTimeout(update, 1200);
 }
 
 /* ================= GUARD TUTUP FORM ================= */
@@ -189,7 +277,6 @@ function neoGuardModal(modalId, flagName) {
     s.textContent = '.d-none{display:none!important}button.d-none{display:none!important}.dsc-btn-primary.d-none{display:none!important}.btn-guest-action.d-none{display:none!important}';
     document.head.appendChild(s);
 
-    /* Preconnect CDN: font & bootstrap lebih cepat */
     ['https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'].forEach(function (u) {
       if (!document.querySelector('link[rel="preconnect"][href="' + u + '"]')) {
         var l = document.createElement('link');
@@ -215,9 +302,9 @@ function neoGuardModal(modalId, flagName) {
 
     document.addEventListener('shown.bs.modal', function (e) {
       if (e.target) neoFitTextareas(e.target);
+      bindScrollHints();
     });
 
-    /* Observer DI-THROTTLE dengan requestAnimationFrame (anti jank) */
     var raf = 0;
     var mo = new MutationObserver(function () {
       if (raf) return;
@@ -227,12 +314,21 @@ function neoGuardModal(modalId, flagName) {
 
     neoGuardModal('modalTambahSurat', '__formDirty');
     neoGuardModal('modalKategori', '__katDirty');
+
+    function bindScrollHints() {
+      ['#sidebarAgendaList', '.page-content-scroll', '.table-responsive', '#pickerGrid', '#autoFillList', '#katListContainer', '#fieldListContainer'].forEach(function (sel) {
+        document.querySelectorAll(sel).forEach(function (c) { neoBindScrollHint(c); });
+      });
+      document.querySelectorAll('.modal-inner-card').forEach(function (c) { neoBindScrollHint(c); });
+    }
+    bindScrollHints();
+    setTimeout(bindScrollHints, 800);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
 
-/* ================= LOADER (hanya aksi eksplisit) ================= */
+/* ================= LOADER ================= */
 var Loader = (function () {
   function show(text) {
     hide(); neoEnsureCss();
@@ -318,4 +414,105 @@ if (typeof Swal !== 'undefined') {
     return neoThenable(function (settle) { NeoDialog.show(opts, settle); });
   };
 }
+</script>
+
+<script>
+/* Patch: wizard anti-bocor + hint scroll menyala */
+(function () {
+  var s = document.createElement('style');
+  s.id = 'neoFixWizard';
+  s.textContent = '' +
+    /* Jadikan modal-inner-card sebagai rel scroll → sticky bekerja */
+    '#modalTambahSurat .modal-inner-card{max-height:86vh;overflow-y:auto;}' +
+    '#modalTambahSurat .modal-dialog-scrollable .modal-inner-card{overflow-y:auto;}' +
+    /* Topbar & nav: solid, z-index tinggi, tidak bisa ditembus konten */
+    '.wiz-topbar{position:sticky;top:0;z-index:60;background:var(--neo-surface);border-radius:16px 16px 0 0;box-shadow:0 10px 16px -10px rgba(163,177,198,.55);}' +
+    '.wiz-nav{position:sticky;bottom:0;z-index:60;background:var(--neo-surface);border-radius:0 0 16px 16px;box-shadow:0 -10px 16px -10px rgba(163,177,198,.55);padding-top:.5rem;}' +
+    /* Konten wizard selalu di bawah topbar/nav */
+    '.wiz-panel{position:relative;z-index:1;}' +
+    '.wiz-panel .wizard-step{position:relative;z-index:1;}' +
+    /* Hint scroll: menyala seperti lampu */
+    '.neo-scroll-hint{color:var(--neo-accent);text-shadow:0 0 8px rgba(102,126,234,.65);}' +
+    '.neo-scroll-hint i{color:var(--neo-accent);filter:drop-shadow(0 0 6px rgba(102,126,234,.95));animation:neoGlow 1.4s infinite ease-in-out;}' +
+    '@keyframes neoGlow{0%,100%{transform:translateY(0);opacity:.85;}50%{transform:translateY(3px);opacity:1;}}';
+  document.head.appendChild(s);
+})();
+</script>
+
+<script>
+/* Patch v2: modal wizard layout FLEX — header & footer terkunci, isi scroll.
+   Tidak memakai sticky → mustahil bocor. */
+(function () {
+  var s = document.createElement('style');
+  s.id = 'neoFixWizardV2';
+  s.textContent = '' +
+    '#modalTambahSurat .modal-inner-card{display:flex;flex-direction:column;max-height:88vh;overflow:hidden;}' +
+    '#modalTambahSurat .wiz-topbar{flex:0 0 auto;position:relative;top:auto;z-index:5;}' +
+    '#modalTambahSurat form#formSurat{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}' +
+    '#modalTambahSurat .wiz-panel{flex:1 1 auto;overflow-y:auto;min-height:0;}' +
+    '#modalTambahSurat .wiz-nav{flex:0 0 auto;position:relative;bottom:auto;z-index:5;}' +
+    /* Hint scroll menyala */
+    '.neo-scroll-hint{color:var(--neo-accent);text-shadow:0 0 8px rgba(102,126,234,.65);}' +
+    '.neo-scroll-hint i{color:var(--neo-accent);filter:drop-shadow(0 0 6px rgba(102,126,234,.95));animation:neoGlow 1.4s infinite ease-in-out;}' +
+    '@keyframes neoGlow{0%,100%{transform:translateY(0);opacity:.85;}50%{transform:translateY(3px);opacity:1;}}';
+  document.head.appendChild(s);
+})();
+</script>
+
+<script>
+/* Pill scroll v3: latar gradien aksen + teks putih + glow */
+(function () {
+  var s = document.createElement('style');
+  s.id = 'neoFixHintV3';
+  s.textContent = '' +
+    '.neo-scroll-hint{background:var(--neo-accent-gradient);color:#fff;text-shadow:none;box-shadow:0 4px 14px rgba(102,126,234,.5),0 0 12px rgba(102,126,234,.4);}' +
+    '.neo-scroll-hint i{color:#fff;filter:none;}' +
+    '.neo-scroll-hint.show{opacity:1;}';
+  document.head.appendChild(s);
+})();
+</script>
+
+<script>
+/* Pill scroll v3: gradien aksen + teks putih + glow */
+(function () {
+  var s = document.createElement('style');
+  s.id = 'neoFixHintV3';
+  s.textContent = '' +
+    '.neo-scroll-hint{background:var(--neo-accent-gradient);color:#fff;text-shadow:none;box-shadow:0 4px 14px rgba(102,126,234,.5),0 0 12px rgba(102,126,234,.4);}' +
+    '.neo-scroll-hint i{color:#fff;filter:none;}' +
+    '.neo-scroll-hint.show{opacity:1;}';
+  document.head.appendChild(s);
+})();
+</script>
+
+<script>
+/* Patch: efek timbul dashboard + dekorasi visual */
+(function () {
+  var s = document.createElement('style');
+  s.id = 'neoFixDashboardV2';
+  s.textContent = '' +
+    /* Dashboard panel: efek timbul lebih kuat */
+    '.mc-panel{background:var(--neo-surface);border-radius:22px;box-shadow:var(--neo-shadow-raised),inset 0 1px 0 rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.4);}' +
+    '.mc-panel-head{border-bottom:1px solid rgba(163,177,198,.2);background:linear-gradient(180deg,rgba(255,255,255,.3) 0%,transparent 100%);}' +
+    /* Gradient subtle untuk background dashboard */
+    '#page-dashboard{background:linear-gradient(135deg,rgba(102,126,234,.03) 0%,rgba(167,139,250,.03) 100%);border-radius:24px;padding:20px;}' +
+    /* Pulse panel: ring lebih menonjol */
+    '.mc-ring-wrap{filter:drop-shadow(0 4px 8px rgba(102,126,234,.15));}' +
+    /* Pattern subtle untuk background panel */
+    '.mc-panel-today{background:linear-gradient(135deg,rgba(102,126,234,.05) 0%,var(--neo-surface) 100%);}' +
+    '.mc-panel-pulse{background:linear-gradient(135deg,var(--neo-surface) 0%,rgba(167,139,250,.08) 100%);}' +
+    /* Chip status dengan animasi */
+    '.badge-status.active{animation:mcBadgePulse 2s infinite;}' +
+    '@keyframes mcBadgePulse{0%,100%{box-shadow:0 0 0 0 rgba(72,187,120,.4);}50%{box-shadow:0 0 0 6px rgba(72,187,120,0);}}' +
+    /* Hover effect untuk items */
+    '.mc-today-item{transition:all .2s ease;border-radius:8px;padding-left:6px;padding-right:6px;margin:0 -6px;}' +
+    '.mc-today-item:hover{background:rgba(102,126,234,.06);transform:translateX(3px);}' +
+    '.mc-todo-item{transition:all .2s ease;border-radius:8px;padding-left:6px;padding-right:6px;margin:0 -6px;}' +
+    '.mc-todo-item:hover{background:rgba(102,126,234,.06);transform:translateX(3px);}' +
+    /* Briefing: gradient halus */
+    '.mc-briefing{background:linear-gradient(135deg,rgba(102,126,234,.04) 0%,var(--neo-surface) 100%);border:1px solid rgba(255,255,255,.5);}' +
+    /* Toolbar: raised effect */
+    '.action-toolbar-row{background:var(--neo-surface);border-radius:16px;padding:12px;box-shadow:var(--neo-shadow-flat);margin-bottom:16px;}';
+  document.head.appendChild(s);
+})();
 </script>

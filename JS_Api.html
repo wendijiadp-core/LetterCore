@@ -113,7 +113,17 @@ var currentSchema = [], customFieldValues = {}, repeaterValues = {}, wizardStep 
 <script>
 var ekspedisiMap = {};
 var TAHAP_ORDER = ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','diterima','dibatalkan','diaktifkan_kembali'];
-var TAHAP_LABEL = { diinput:'Diinput', disposisi_dibuat:'Disposisi dibuat', tercetak:'Tercetak', keputusan:'Keputusan pimpinan', balasan:'Balasan dibuat', diterima:'Diterima pemohon', dibatalkan:'Dibatalkan', diaktifkan_kembali:'Diaktifkan kembali' };
+var TAHAP_LABEL = { 
+  diinput:'Diinput', 
+  disposisi_dibuat:'Disposisi dibuat', 
+  tercetak:'Tercetak', 
+  keputusan:'Keputusan pimpinan', 
+  balasan:'Balasan dibuat', 
+  diterima:'Diterima pemohon', 
+  dibatalkan:'Dibatalkan', 
+  diaktifkan_kembali:'Diaktifkan kembali',
+  selesai_tanpa_balasan:'Selesai tanpa balasan'
+};
 
 function loadEkspedisiMap() {
   UIHelper.callApi('apiGetEkspedisiAll', [], function (d) { ekspedisiMap = d || {}; }, function () {}, true);

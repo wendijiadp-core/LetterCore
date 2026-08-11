@@ -15,8 +15,8 @@ function _actorFrom(user) {
   return (user.fullName || user.username || 'Sistem') + ' (@' + (user.username || '-') + ')';
 }
 
-/* ================= CACHE SERVER (master & kategori jarang berubah) ================= */
-var _CACHE_TTL = 600; // 10 menit
+/* ================= CACHE SERVER ================= */
+var _CACHE_TTL = 600;
 function _cached(key, fn) {
   try {
     var c = CacheService.getScriptCache();
@@ -31,7 +31,7 @@ function _invalidateCache() {
   try { CacheService.getScriptCache().removeAll(['lc_kategori', 'lc_master_aset', 'lc_master_orang']); } catch (e) {}
 }
 
-/* ================= WARM-UP (anti cold start) ================= */
+/* ================= WARM-UP ================= */
 function keepWarm() { return 'warm'; }
 function installWarmupTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -41,7 +41,7 @@ function installWarmupTrigger() {
   return 'Trigger warm-up aktif (tiap 15 menit).';
 }
 
-/* ================= LOAD TERPISAH: CORE (cepat) vs MASTER (cache) ================= */
+/* ================= LOAD TERPISAH ================= */
 function apiLoadCore(params) {
   try {
     return DesignService.success({
@@ -145,7 +145,7 @@ function apiGetEkspedisiAll(params) {
   catch (e) { return DesignService.error(e.message, 500); }
 }
 
-/* ===== MANAJEMEN KATEGORI (invalidasi cache saat berubah) ===== */
+/* ===== MANAJEMEN KATEGORI ===== */
 function apiSimpanKategori(params) { try { var r = Kategori.simpanKategori(params); _invalidateCache(); return r; } catch (e) { return DesignService.error(e.message, 500); } }
 function apiSimpanField(params) { try { var r = Kategori.simpanField(params); _invalidateCache(); return r; } catch (e) { return DesignService.error(e.message, 500); } }
 function apiHapusField(params) { try { var r = Kategori.hapusField(params.idField); _invalidateCache(); return r; } catch (e) { return DesignService.error(e.message, 500); } }
@@ -153,3 +153,57 @@ function apiHapusField(params) { try { var r = Kategori.hapusField(params.idFiel
 /* ===== STATUS: BATAL / AKTIFKAN ===== */
 function apiBatalkanSurat(params) { try { return SuratMasuk.batalkanSurat(params.idSurat, params.catatan, params.user); } catch (e) { return DesignService.error(e.message, 500); } }
 function apiAktifkanSurat(params) { try { return SuratMasuk.aktifkanSurat(params.idSurat, params.user); } catch (e) { return DesignService.error(e.message, 500); } }
+
+/* ===== TEMPLATE DISPOSISI DINAMIS ===== */
+function apiGetTemplateDisposisi(params) {
+  try {
+    var kategoriId = params.kategoriId || '';
+    var kategori = SuratMasuk.getKategoriList().find(function (k) { return k.id === kategoriId; });
+    var templateKey = kategori ? (kategori.templateDisposisi || 'default') : 'default';
+    
+    var TEMPLATES = {
+      'default': {
+        subject: 'Disposisi Surat',
+        body: 'Dengan hormat,\n\nMohon tindak lanjut surat dari {{PENGIRIM}} perihal {{PERIHAL}}.\n\nDemikian untuk menjadi perhatian.\n\nHormat kami,'
+      },
+      'peminjaman': {
+        subject: 'Disposisi Peminjaman',
+        body: 'Dengan hormat,\n\n{{PERIHAL}} dari {{PENGIRIM}} untuk kegiatan {{DESKRIPSI}}.\n\nMohon diproses sesuai ketentuan yang berlaku.\n\nHormat kami,'
+      },
+      'undangan': {
+        subject: 'Disposisi Undangan',
+        body: 'Dengan hormat,\n\nUndangan dari {{PENGIRIM}} perihal {{PERIHAL}}.\n\nMohon konfirmasi kehadiran.\n\nHormat kami,'
+      }
+    };
+    
+    var template = TEMPLATES[templateKey] || TEMPLATES['default'];
+    return DesignService.success(template);
+  } catch (e) { return DesignService.error(e.message, 500); }
+}
+
+function apiSimpanTemplateDisposisi(params) {
+  try {
+    var ss = SpreadsheetApp.openById(ConfigService.get('LETTER_CORE_SPREADSHEET_ID'));
+    var s = ss.getSheetByName('kategori_surat');
+    if (!s) return DesignService.error('Sheet kategori_surat tidak ditemukan', 404);
+    
+    var h = s.getRange(1, 1, 1, Math.max(s.getLastColumn(), 1)).getDisplayValues()[0];
+    var iKat = h.indexOf('id_kategori'), iTpl = h.indexOf('template_disposisi');
+    
+    if (iTpl === -1) {
+      iTpl = s.getLastColumn() + 1;
+      s.getRange(1, iTpl).setValue('template_disposisi');
+    } else {
+      iTpl++;
+    }
+    
+    var data = s.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][iKat]) === params.kategoriId) {
+        s.getRange(i + 1, iTpl).setValue(params.templateKey || 'default');
+        return DesignService.success({ message: 'Template tersimpan' });
+      }
+    }
+    return DesignService.error('Kategori tidak ditemukan', 404);
+  } catch (e) { return DesignService.error(e.message, 500); }
+}

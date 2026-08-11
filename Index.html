@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Letter Core — Sistem Persuratan Digital</title>
 
-  <!-- External Libraries -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
@@ -17,11 +16,9 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- Internal Styles -->
   <?!= include('AppStyle'); ?>
   <?!= include('LetterCore'); ?>
 
-  <!-- Dev Mode Styles -->
   <style>
     .dev-mode-banner {
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
@@ -32,31 +29,20 @@
       font-weight: 700;
       letter-spacing: 0.3px;
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       z-index: 10000;
     }
-    body.dev-mode-active .dsc-wrapper {
-      padding-top: calc(2rem + 28px) !important;
-    }
+    body.dev-mode-active .dsc-wrapper { padding-top: calc(2rem + 28px) !important; }
     .dev-mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      background: var(--neo-surface);
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; background: var(--neo-surface);
       border-radius: var(--neo-radius-pill);
-      font-size: 0.65rem;
-      font-weight: 800;
-      color: #d97706;
+      font-size: 0.65rem; font-weight: 800; color: #d97706;
       box-shadow: var(--neo-shadow-inset);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
   </style>
 
-  <!-- Inject Data -->
   <script>
     var currentUser = <?!= JSON.stringify(currentUser || {}) ?>;
     var launcherUrl = '<?!= launcherUrl ?>';
@@ -73,7 +59,6 @@
 
 <body class="<?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? 'dev-mode-active' : '' ?>">
 
-  <!-- Dev Mode Banner -->
   <?!= (typeof isDevBypass !== 'undefined' && isDevBypass) ? `
   <div class="dev-mode-banner">
     <i class="bi bi-bug-fill me-1"></i>
@@ -83,7 +68,7 @@
 
   <div class="dsc-wrapper">
     
-    <!-- ================= LEFT SIDEBAR ================= -->
+    <!-- LEFT SIDEBAR -->
     <aside class="dsc-sidebar">
       <div class="sidebar-brand-wrapper">
         <div class="brand-logo-box">
@@ -97,7 +82,6 @@
 
       <div class="sidebar-divider"></div>
 
-      <!-- Menu Navigasi -->
       <div class="sidebar-menu d-flex flex-column gap-1">
         <div class="nav-link active" onclick="switchPage('page-dashboard')" id="nav-page-dashboard" role="button">
           <div class="nav-icon-box"><i class="bi bi-house-door-fill"></i></div>
@@ -107,13 +91,13 @@
           <div class="nav-icon-box"><i class="bi bi-inbox-fill"></i></div>
           <span>Surat Masuk</span>
         </div>
+        <div class="nav-link" onclick="switchPage('page-disposisi')" id="nav-page-disposisi" role="button">
+          <div class="nav-icon-box"><i class="bi bi-file-earmark-word-fill"></i></div>
+          <span>Ekspedisi & Disposisi</span>
+        </div>
         <div class="nav-link" onclick="switchPage('page-kalendar')" id="nav-page-kalendar" role="button">
           <div class="nav-icon-box"><i class="bi bi-calendar-event-fill"></i></div>
           <span>Kalender Agenda</span>
-        </div>
-        <div class="nav-link" onclick="switchPage('page-disposisi')" id="nav-page-disposisi" role="button">
-          <div class="nav-icon-box"><i class="bi bi-file-earmark-word-fill"></i></div>
-          <span>Lembar Disposisi</span>
         </div>
       </div>
 
@@ -126,11 +110,10 @@
       </div>
     </aside>
 
-    <!-- ================= MAIN CONTENT ================= -->
+    <!-- MAIN CONTENT -->
     <div class="dsc-content">
       <div class="dsc-card">
         
-        <!-- Header -->
         <div class="topbar-header">
           <div>
             <h1 class="topbar-title" id="pageTitle">Dashboard</h1>
@@ -142,17 +125,9 @@
               <i class="bi bi-bug-fill"></i><span>DEV MODE</span>
             </div>
             ` : '' ?>
-            <div class="user-pill">
-              <div class="user-avatar"><?!= (currentUser.fullName || 'U').charAt(0).toUpperCase() ?></div>
-              <div>
-                <div class="user-info-name"><?!= currentUser.fullName || 'User' ?></div>
-                <div class="user-info-role"><?!= (currentUser.role || 'USER') ?></div>
-              </div>
-            </div>
           </div>
         </div>
 
-        <!-- Content Area -->
         <div class="page-content-scroll" style="flex-grow: 1; overflow-y: auto; position: relative; min-height: 0;">
           <div id="page-dashboard" class="page-section active"><?!= include('View_Dashboard'); ?></div>
           <div id="page-surat-masuk" class="page-section d-none"><?!= include('View_SuratMasuk'); ?></div>
@@ -163,10 +138,9 @@
       </div>
     </div>
 
-    <!-- ================= RIGHT SIDEBAR ================= -->
+    <!-- RIGHT SIDEBAR -->
     <aside class="dsc-sidebar" style="width: 300px !important;">
       
-      <!-- User Widget -->
       <div style="background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1rem; box-shadow: var(--neo-shadow-inset); position: relative; overflow: hidden; margin-bottom: 1rem;">
         <div style="position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.6;"></div>
         <div class="d-flex align-items-center gap-3">
@@ -183,14 +157,12 @@
         </div>
       </div>
       
-      <!-- Clock Widget -->
       <div style="font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Waktu Realtime</div>
       <div class="sidebar-clock-box" style="margin-bottom: 1rem;">
         <div id="realtimeClock" class="clock-time">--:--:--</div>
         <div id="realtimeDate" class="clock-date">-</div>
       </div>
 
-      <!-- Agenda Widget -->
       <div style="font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Agenda Bulan Ini</div>
       <div id="sidebarAgendaList" class="d-flex flex-column" style="flex-grow: 1; overflow-y: auto; max-height: 340px; padding-right: 4px;">
         <div style="text-align: center; padding: 2rem 1rem; color: var(--neo-text-muted); font-size: 0.75rem; font-weight: 600;">
@@ -233,7 +205,6 @@
   <?!= include('JS_Modals'); ?>
 
   <script>
-    // Logout Handler
     function handleLogout() {
       if (window.isDevBypass) {
         Swal.fire({ 
@@ -267,13 +238,11 @@
       });
     }
 
-    // Init
     document.addEventListener('DOMContentLoaded', function() {
       updateRealtimeClock();
       setInterval(updateRealtimeClock, 1000);
       
       if (typeof loadAllData === 'function') loadAllData();
-      if (typeof loadEnumLists === 'function') loadEnumLists();
       
       if (!isFromSession && currentUser.fullName) {
         setTimeout(() => {
@@ -304,6 +273,9 @@
     }
 
     function switchPage(pageId) {
+      /* Masuk menu ekspedisi → selalu mulai dari DAFTAR (tutup detail lama) */
+      if (pageId === 'page-disposisi' && typeof tutupEkspedisi === 'function') tutupEkspedisi();
+
       document.querySelectorAll('.page-section').forEach(el => {
         el.classList.remove('active');
         el.classList.add('d-none');
@@ -318,8 +290,8 @@
       const titles = {
         'page-dashboard': { title: 'Dashboard', sub: 'Overview sistem arsip & agenda kegiatan' },
         'page-surat-masuk': { title: 'Surat Masuk', sub: 'Kelola arsip persuratan dan agenda' },
-        'page-kalendar': { title: 'Kalender Agenda', sub: 'Jadwal kegiatan bulanan interaktif' },
-        'page-disposisi': { title: 'Lembar Disposisi', sub: 'Arsip dokumen disposisi otomatis' }
+        'page-disposisi':  { title: 'Ekspedisi & Disposisi', sub: 'Tracking surat & lembar disposisi pimpinan' },
+        'page-kalendar':   { title: 'Kalender Agenda', sub: 'Jadwal kegiatan bulanan interaktif' }
       };
       const info = titles[pageId] || { title: 'Letter Core', sub: '' };
       document.getElementById('pageTitle').innerText = info.title;
@@ -333,5 +305,28 @@
       } catch (e) { console.error('[switchPage]', e); }
     }
   </script>
+
+  <script>
+/* Patch: topbar header hanya tampil di halaman non-Dashboard.
+   Briefing sudah menggantikan fungsinya di Dashboard. */
+(function () {
+  function applyTopbar() {
+    var dashActive = document.getElementById('page-dashboard') &&
+                     document.getElementById('page-dashboard').classList.contains('active');
+    var tb = document.querySelector('.topbar-header');
+    if (tb) tb.style.display = dashActive ? 'none' : '';
+  }
+  // Pasang segera
+  applyTopbar();
+  // Pasang ulang setiap kali switchPage dipanggil
+  var _orig = window.switchPage;
+  if (typeof _orig === 'function') {
+    window.switchPage = function (id) {
+      _orig(id);
+      setTimeout(applyTopbar, 50);
+    };
+  }
+})();
+</script>
 </body>
 </html>
