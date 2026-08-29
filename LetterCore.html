@@ -159,4 +159,132 @@ input[type="file"].form-control { padding: 0.6rem 1rem !important; min-height: 4
   .calendar-event-chip { font-size: 0.6rem; }
   .metrics-row { grid-template-columns: 1fr 1fr; }
 }
+
+/* FIX: dialog SweetAlert2 (konfirmasi) selalu di atas modal Bootstrap */
+.swal2-container { z-index: 100000 !important; }
+
+/* ============================================================================
+ * REFRESH RINGAN v3 — identitas warna per halaman + hierarki + kontras
+ * Dipasang paling akhir; hapus blok ini untuk kembali ke tampilan lama.
+ * ============================================================================ */
+
+/* --- Identitas warna per halaman --- */
+body[data-page="page-dashboard"], body:not([data-page]) { --page-accent:#667eea; --page-accent-soft:rgba(102,126,234,.12); }
+body[data-page="page-surat-masuk"]  { --page-accent:#4299e1; --page-accent-soft:rgba(66,153,225,.12);
+  --nav-glow-sm: 0 0 6px rgba(66,153,225,.6), 0 0 12px rgba(66,153,225,.3);
+  --nav-glow-lg: 0 0 12px rgba(66,153,225,.9), 0 0 20px rgba(66,153,225,.5); }
+body[data-page="page-surat-keluar"] { --page-accent:#f59e0b; --page-accent-soft:rgba(245,158,11,.14);
+  --nav-glow-sm: 0 0 6px rgba(245,158,11,.6), 0 0 12px rgba(245,158,11,.3);
+  --nav-glow-lg: 0 0 12px rgba(245,158,11,.9), 0 0 20px rgba(245,158,11,.5); }
+body[data-page="page-kalendar"]     { --page-accent:#38b2ac; --page-accent-soft:rgba(56,178,172,.12);
+  --nav-glow-sm: 0 0 6px rgba(56,178,172,.6), 0 0 12px rgba(56,178,172,.3);
+  --nav-glow-lg: 0 0 12px rgba(56,178,172,.9), 0 0 20px rgba(56,178,172,.5); }
+
+/* --- Hierarki: kartu konten lebih terang + border tipis (neumorphic tetap untuk well/dekorasi) --- */
+.pinterest-card, .disposisi-card, .wizard-step, .hero-stat-card, .metric-card, .agenda-widget-item {
+  background: var(--neo-surface-card);
+  border: 1px solid rgba(255,255,255,.65);
+}
+
+/* --- Judul halaman: lebih besar + garis aksen berwarna halaman --- */
+.topbar-title { font-size: 1.7rem; }
+.topbar-title::after {
+  content: '';
+  display: block;
+  width: 64px; height: 4px; border-radius: 999px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--page-accent, var(--neo-accent)), transparent);
+}
+
+/* --- Nav aktif & hover mengikuti warna halaman --- */
+body[data-page] .nav-link.active, body[data-page] .dsc-nav-link.active { color: var(--page-accent) !important; }
+body[data-page] .nav-link.active .nav-icon-box, body[data-page] .dsc-nav-link.active .nav-icon-box { color: var(--page-accent) !important; background: var(--page-accent-soft) !important; }
+body[data-page] .nav-link.active::before, body[data-page] .dsc-nav-link.active::before { background: var(--page-accent); }
+body[data-page] .nav-link:hover, body[data-page] .dsc-nav-link:hover { color: var(--page-accent) !important; }
+
+/* --- Garis atas kartu utama mengikuti warna halaman --- */
+body[data-page] .dsc-card::before, body[data-page] .card::before, body[data-page] .main-card::before {
+  background: linear-gradient(90deg, var(--page-accent), var(--neo-accent));
+  opacity: .75;
+}
+
+/* --- Ikon/judul section & wizard mengikuti warna halaman --- */
+body[data-page] .section-title-icon { color: var(--page-accent); }
+body[data-page] .wizard-step-title { color: var(--page-accent); }
+body[data-page] .detail-section-title { color: var(--page-accent); }
+
+/* Tombol konfirmasi inline (bebas dari !important dsc-btn-primary) */
+.kat-conf-btn { border:none; border-radius:999px; padding:6px 14px; font-size:.7rem; font-weight:800; cursor:pointer; box-shadow:var(--neo-soft-flat); background:var(--neo-surface); display:inline-flex; align-items:center; gap:4px; }
+.kat-conf-btn:hover { box-shadow:var(--neo-soft-raised); transform:translateY(-1px); }
+.kat-conf-btn.ya { color:#276749; background:rgba(72,187,120,.16); }
+.kat-conf-btn.batal { color:var(--neo-text-sub); }
+
 </style>
+
+<script>
+/* ============ REFRESH RINGAN: penanda halaman aktif di <body> ============ */
+(function(){
+  if (window.__pageThemeWired) return; window.__pageThemeWired = true;
+  var PAGES = ['page-dashboard','page-surat-masuk','page-surat-keluar','page-kalendar'];
+  function apply(){
+    var id = '';
+    for (var i = 0; i < PAGES.length; i++) {
+      var el = document.getElementById(PAGES[i]);
+      if (el && el.classList.contains('active')) { id = PAGES[i]; break; }
+    }
+    document.body.setAttribute('data-page', id || 'page-dashboard');
+  }
+  function start(){
+    apply();
+    try {
+      var host = document.querySelector('.page-content-scroll') || document.body;
+      new MutationObserver(apply).observe(host, { attributes:true, attributeFilter:['class'], subtree:true });
+    } catch(e){}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+</script>
+
+<script>
+/* ============ FIX: tombol X modal selalu menutup (anti nyangkut) ============ */
+(function(){
+  if (window.__modalCloseFixed) return; window.__modalCloseFixed = true;
+  document.addEventListener('click', function(e){
+    var btn = (e.target && e.target.closest) ? e.target.closest('.modal-close-btn') : null;
+    if (!btn) return;
+    var m = btn.closest('.modal');
+    if (m && typeof neoHideModal === 'function') {
+      e.preventDefault();
+      e.stopPropagation();
+      neoHideModal(m);
+    }
+  }, true);
+})();
+</script>
+
+<script>
+/* ============ FIX PASTI: Swal SELALU di atas modal (inline z-index) ============ */
+(function(){
+  if (window.__swalTopFixed) return; window.__swalTopFixed = true;
+
+  function lift(){
+    var c = document.querySelector('.swal2-container');
+    if (c) c.style.setProperty('z-index', '100000', 'important');
+  }
+  function wrap(){
+    if (typeof Swal === 'undefined' || !Swal.fire || Swal.__topWrapped) return;
+    Swal.__topWrapped = true;
+    var orig = Swal.fire;
+    Swal.fire = function(){
+      var r = orig.apply(this, arguments);
+      lift();            // langsung saat dialog dibuat
+      setTimeout(lift, 0);   // antisipasi render async
+      setTimeout(lift, 60);
+      return r;
+    };
+  }
+  if (typeof Swal !== 'undefined') wrap();
+  else document.addEventListener('DOMContentLoaded', wrap);
+})();
+</script>

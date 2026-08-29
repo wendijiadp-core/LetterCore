@@ -1,0 +1,69 @@
+<section id="sec-surat-keluar" style="display:flex; flex-direction:column; height:100%; min-height:0;">
+
+  <!-- TOOLBAR -->
+  <div class="sm-toolbar" id="skToolbar">
+    <div class="sm-toolbar-row1">
+      <div class="search-box-v2 sm-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="skSearchInput" placeholder="Cari nomor, perihal, tujuan, jenis..." onkeyup="onSkSearch()">
+      </div>
+      <div class="sm-actions">
+        <button class="btn-cta-neo" onclick="openModalSuratKeluar('MANDIRI')"><i class="bi bi-plus-lg"></i> Catat Surat Keluar</button>
+      </div>
+    </div>
+    <div class="sm-segment" id="skSegment">
+      <button class="sm-seg active" id="skseg-ALL" onclick="setSkFilter('ALL')">Semua <span class="sm-seg-count" id="sksegCount-ALL">0</span></button>
+      <button class="sm-seg" id="skseg-BALASAN" onclick="setSkFilter('BALASAN')">Balasan <span class="sm-seg-count" id="sksegCount-BALASAN">0</span></button>
+      <button class="sm-seg" id="skseg-MANDIRI" onclick="setSkFilter('MANDIRI')">Mandiri <span class="sm-seg-count" id="sksegCount-MANDIRI">0</span></button>
+    </div>
+  </div>
+
+  <!-- DAFTAR KARTU -->
+  <div class="sm-table-wrap" id="skListWrap"></div>
+
+</section>
+
+<!-- input file tersembunyi untuk upload scan -->
+<input type="file" id="skScanFile" accept="image/*,application/pdf" style="display:none;" onchange="onSkScanPicked(event)">
+
+<style>
+/* =========================================================
+   ARSIP SURAT KELUAR — reuse bahasa visual Surat Masuk
+   ========================================================= */
+.page-content-scroll:has(#page-surat-keluar.active){ overflow:hidden !important; }
+#page-surat-keluar{ height:100%; display:flex; flex-direction:column; }
+
+.sk-card {
+  background:#d6dbe4;
+  border-radius:18px;
+  padding:12px 16px;
+  margin-bottom:14px;
+  box-shadow: inset 4px 4px 9px rgba(150,162,182,0.55), inset -4px -4px 9px rgba(255,255,255,0.7);
+  transition: box-shadow .2s ease;
+}
+.sk-card:hover { box-shadow: inset 4px 4px 9px rgba(150,162,182,0.55), inset -4px -4px 9px rgba(255,255,255,0.7), 0 0 0 1px rgba(102,126,234,0.35); }
+
+.sk-inner {
+  background:var(--neo-surface);
+  border-radius:12px;
+  padding:12px 16px;
+  box-shadow: 2px 2px 5px rgba(150,162,182,0.4), -2px -2px 4px rgba(255,255,255,0.5), 0 0 0 1px rgba(163,177,198,0.28);
+}
+.sk-row1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.sk-agenda { flex-shrink:0; }
+.sk-body { flex:1 1 240px; min-width:0; text-align:left; }
+.sk-body .sk-perihal { font-size:0.9rem; font-weight:800; color:var(--neo-text-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sk-body .sk-meta { font-size:0.7rem; color:var(--neo-text-sub); font-weight:600; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sk-badges { display:flex; gap:6px; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+.sk-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+
+.sk-chip-asal { font-size:0.64rem; font-weight:800; padding:3px 9px; border-radius:99px; text-transform:uppercase; letter-spacing:.4px; }
+.sk-chip-balasan { background:rgba(102,126,234,0.14); color:#4c51bf; }
+.sk-chip-mandiri { background:rgba(72,187,120,0.16); color:#276749; }
+
+.sk-link-induk { background:none; border:none; color:var(--neo-accent); font-size:0.7rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; padding:4px 6px; }
+.sk-link-induk:hover { text-decoration:underline; }
+
+.sk-empty { text-align:center; padding:40px 10px; color:var(--neo-text-muted); font-weight:600; font-size:0.85rem; }
+.sk-empty i { font-size:2rem; display:block; margin-bottom:8px; opacity:0.5; }
+</style>

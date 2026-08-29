@@ -1,138 +1,352 @@
-<section id="sec-surat-masuk">
-  <div class="action-toolbar-row">
-    <div class="toolbar-left">
-      <input type="text" id="suratSearchInput" class="search-input-clean" placeholder="Cari agenda, pengirim, perihal..." onkeyup="filterSuratTable()">
-      <select id="filterStatusSurat" class="form-control" style="width:auto; margin-left:8px; padding:8px 14px; border-radius:999px; box-shadow:var(--neo-shadow-flat); font-size:.78rem; font-weight:700;" onchange="setSuratStatusFilter(this.value)">
-        <option value="ALL">Semua status</option>
-        <option value="AKTIF">Hanya Aktif</option>
-        <option value="BATAL">Hanya Dibatalkan</option>
-      </select>
+<section id="sec-surat-masuk" style="display:flex; flex-direction:column; height:100%; min-height:0;">
+
+  <!-- TOOLBAR (satu kartu) -->
+  <div class="sm-toolbar" id="smToolbar">
+    <div class="sm-toolbar-row1">
+      <div class="search-box-v2 sm-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="suratSearchInput" placeholder="Cari agenda, pengirim, perihal, deskripsi, nomor..." onkeyup="onSuratSearch()">
+      </div>
+      <div class="sm-actions">
+        <button class="btn-cta-neo" onclick="openModalTambahSurat()"><i class="bi bi-plus-lg"></i> Tambah Surat</button>
+      </div>
     </div>
-    <div class="toolbar-right">
-      <button class="btn-guest-action" style="padding:9px 16px; border-radius:999px; font-size:.78rem;" onclick="openManajemenKategori()"><i class="bi bi-sliders"></i> Manajemen Kategori</button>
-      <button class="dsc-btn-primary" style="margin-bottom:0;" onclick="openModalTambahSurat()"><i class="bi bi-plus-circle-fill"></i> Tambah Surat</button>
+    <div class="sm-segment" id="statusSegment">
+      <button class="sm-seg active" id="seg-ALL" onclick="setSuratFilter('ALL')">Semua <span class="sm-seg-count" id="segCount-ALL">0</span></button>
+      <button class="sm-seg" id="seg-AKTIF" onclick="setSuratFilter('AKTIF')">Aktif <span class="sm-seg-count" id="segCount-AKTIF">0</span></button>
+      <button class="sm-seg" id="seg-SELESAI" onclick="setSuratFilter('SELESAI')">Selesai <span class="sm-seg-count" id="segCount-SELESAI">0</span></button>
+      <button class="sm-seg" id="seg-BATAL" onclick="setSuratFilter('BATAL')">Batal <span class="sm-seg-count" id="segCount-BATAL">0</span></button>
     </div>
   </div>
-  <div class="table-responsive">
-    <table class="dsc-table">
-      <thead><tr>
-        <th style="width:9%;">Agenda</th><th style="width:13%;">Pengirim</th><th style="width:27%;">Perihal & Detail</th>
-        <th style="width:13%;">Kategori</th><th style="width:12%;">Tanggal</th><th style="width:11%;">Status</th><th style="width:15%;">Aksi</th>
-      </tr></thead>
-      <tbody id="suratTableBody"></tbody>
-    </table>
+
+  <!-- DAFTAR KARTU (single scroll) -->
+  <div class="sm-table-wrap" id="smTableWrap"></div>
+
+  <!-- DETAIL TIMELINE INLINE (pindahan dari halaman Ekspedisi) -->
+  <div id="ekspedisiDetail" class="d-none">
+    <div class="wizard-step">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="wizard-step-title" style="margin-bottom:0;" id="ekspedisiTitle"></div>
+        <button type="button" class="btn-picker" onclick="tutupEkspedisi()"><i class="bi bi-arrow-left"></i> Kembali ke daftar</button>
+      </div>
+      <div id="ekspedisiTimeline"></div>
+      <div id="ekspedisiAction" class="mt-3"></div>
+    </div>
   </div>
+
 </section>
 
-<!-- ============ MODAL MANAJEMEN KATEGORI (v4) ============ -->
-<div class="modal fade" id="modalKategori" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-outer-card modal-wide">
+<!-- ============ MODAL MANAJEMEN KATEGORI ============ -->
+<div class="modal fade" id="modalKategori" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-outer-card modal-mid">
       <div class="modal-inner-card">
-        <button type="button" class="modal-close-btn" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
-        <h6 class="fw-bold mb-3" style="color:var(--neo-text-heading);"><i class="bi bi-tags-fill" style="color:var(--neo-accent);"></i> Manajemen Jenis Surat</h6>
-        <div class="row g-3">
+        <button type="button" class="modal-close-btn" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+        <h6 class="fw-bold mb-3" style="color:var(--neo-text-heading); font-size:1.05rem; padding-right:30px;">
+          <i class="bi bi-tags-fill" style="color:var(--neo-accent);"></i> Manajemen Kategori & Field
+        </h6>
 
-          <div class="col-md-4">
-            <div class="wizard-step" style="height:100%;">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="wizard-step-title" style="margin-bottom:0;">Daftar</div>
-                <button type="button" class="btn-picker" onclick="editKategori('')"><i class="bi bi-plus"></i> Baru</button>
-              </div>
-              <div id="katListContainer" style="max-height:55vh; overflow-y:auto;"></div>
-            </div>
-          </div>
-
-          <div class="col-md-8">
-            <div class="wizard-step">
-              <div class="wizard-step-title">Editor Kategori</div>
-              <input type="hidden" id="katId">
-              <div class="row g-2">
-                <div class="col-md-6"><label class="form-label">Nama Jenis</label><input class="form-control" id="katNama"></div>
-                <div class="col-md-6"><label class="form-label">Disposisi Default</label><input class="form-control" id="katTujuan" list="listTujuan"></div>
-                <div class="col-md-6"><label class="form-label">Balasan Default</label><input class="form-control" id="katBalasan" placeholder="mis. Surat Jalan"></div>
-                <div class="col-md-6 d-flex align-items-end">
-                  <div class="switch-card w-100">
-                    <input class="form-check-input" type="checkbox" id="katAktif" checked>
-                    <label class="form-check-label" for="katAktif" style="font-size:.78rem; font-weight:700; margin:0;">Tampilkan di pilihan Jenis Surat</label>
-                  </div>
-                </div>
-                <div class="col-md-6"><label class="form-label">Label Tahap 2</label><input class="form-control" id="katLabel2" placeholder="mis. Kegiatan / Kendaraan"></div>
-                <div class="col-md-6"><label class="form-label">Label Tahap 3</label><input class="form-control" id="katLabel3" placeholder="mis. Detail / Orang"></div>
-
-                <div class="col-12">
-                  <div class="switch-card">
-                    <input class="form-check-input" type="checkbox" id="katPakaiJadwal" onchange="katJadwalChange()">
-                    <label class="form-check-label" for="katPakaiJadwal" style="font-size:.8rem; font-weight:700; color:var(--neo-text-sub); margin:0;">Sertakan blok "Pelaksanaan" di Tahap 2</label>
-                  </div>
-                </div>
-                <div class="col-md-6 d-none" id="katJadwalOpts">
-                  <label class="form-label">Tempat pada jadwal</label>
-                  <select class="form-control" id="katModeTempat" onchange="katModeTempatChange()">
-                    <option value="INPUT">Diisi manual + picker</option>
-                    <option value="NONE">Tidak pakai tempat</option>
-                    <option value="FIELD">Mengikuti field lain</option>
-                  </select>
-                </div>
-                <div class="col-md-6 d-none" id="wrapKatModeField">
-                  <label class="form-label">Field sumber tempat</label>
-                  <select class="form-control" id="katModeField"></select>
-                  <div class="field-hint">Nilai field ini otomatis menjadi tempat pada jadwal.</div>
-                </div>
-
-                <div class="col-12 text-end"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="simpanKategoriForm()"><i class="bi bi-save"></i> Simpan Kategori</button></div>
-              </div>
-            </div>
-
-            <div class="wizard-step">
-              <div class="wizard-step-title">Field Form untuk Kategori Ini</div>
-              <div id="fieldListContainer" style="max-height:24vh; overflow-y:auto;"></div>
-              <div class="row g-2 mt-1">
-                <div class="col-md-4"><label class="form-label">Label</label><input class="form-control" id="fLabel"></div>
-                <div class="col-md-2"><label class="form-label">Tipe</label><select class="form-control" id="fTipe" onchange="fTipeChange()"><option>text</option><option>number</option><option>textarea</option><option>select</option><option>repeater</option></select></div>
-                <div class="col-md-3 d-none" id="wrapFOpsi">
-                  <label class="form-label" id="fOpsiLabel">Opsi (koma)</label>
-                  <input class="form-control" id="fOpsi" placeholder="">
-                </div>
-                <div class="col-md-3"><label class="form-label">Tampil di tahap</label><select class="form-control" id="fTahap"><option value="2">2 · Kegiatan</option><option value="3" selected>3 · Detail</option></select></div>
-                <div class="col-md-3"><label class="form-label">Isi cepat dari master</label><select class="form-control" id="fSumber"><option value="">— manual —</option><option value="master_aset:tempat">Master Tempat</option><option value="master_aset:barang">Master Barang</option><option value="master_aset:kendaraan">Master Kendaraan</option><option value="master_orang">Master Orang</option></select></div>
-                <div class="col-md-3">
-                  <div class="switch-card">
-                    <input class="form-check-input" type="checkbox" id="fRequired">
-                    <label class="form-check-label" for="fRequired" style="font-size:.75rem; font-weight:700; margin:0;">Wajib diisi</label>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="switch-card">
-                    <input class="form-check-input" type="checkbox" id="fOpsional">
-                    <label class="form-check-label" for="fOpsional" style="font-size:.75rem; font-weight:700; margin:0;">Opsional — pengguna centang bila perlu</label>
-                  </div>
-                </div>
-                <div class="col-md-3 d-flex align-items-end"><button class="btn-picker w-100 justify-content-center" onclick="simpanFieldForm()"><i class="bi bi-plus"></i> Tambah Field</button></div>
-              </div>
-            </div>
-          </div>
-
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-size:.72rem; font-weight:800; color:var(--neo-text-sub); text-transform:uppercase;">Pilih kategori untuk diedit</div>
+          <button type="button" class="sm-btn-subtle" style="padding:6px 12px; font-size:.7rem;" onclick="newKategori()"><i class="bi bi-plus-lg"></i> Kategori Baru</button>
         </div>
+        <div class="sm-list-well">
+          <div id="katListContainer"></div>
+        </div>
+
+        <div class="wizard-step" style="margin-bottom:14px;">
+          <div class="wizard-step-title"><i class="bi bi-tag"></i> Pengaturan Kategori</div>
+          <input type="hidden" id="katId">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Nama Kategori</label><input type="text" id="katNama" class="form-control" placeholder="mis. Peminjaman Barang"></div>
+            <div class="col-md-6"><label class="form-label">Tujuan Disposisi</label><input type="text" id="katTujuan" class="form-control" placeholder="mis. Wakil Dekan II"></div>
+            <div class="col-md-6"><label class="form-label">Balasan Default</label><input type="text" id="katBalasan" class="form-control" placeholder="mis. Surat Jalan"></div>
+            <div class="col-md-3"><label class="form-label">Label Tahap 2</label><input type="text" id="katLabel2" class="form-control" placeholder="Kegiatan"></div>
+            <div class="col-md-3"><label class="form-label">Label Tahap 3</label><input type="text" id="katLabel3" class="form-control" placeholder="Detail"></div>
+            <div class="col-md-6">
+              <div class="switch-card"><input class="form-check-input" type="checkbox" id="katAktif" checked><label class="form-check-label" for="katAktif" style="font-size:.8rem; font-weight:700; margin:0;">Kategori aktif</label></div>
+            </div>
+            <div class="col-md-6">
+              <div class="switch-card"><input class="form-check-input" type="checkbox" id="katPakaiJadwal" onchange="katJadwalChange()"><label class="form-check-label" for="katPakaiJadwal" style="font-size:.8rem; font-weight:700; margin:0;">Pakai jadwal kegiatan</label></div>
+            </div>
+          </div>
+          <div id="katJadwalOpts" class="d-none" style="margin-top:10px;">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Sumber Tempat</label>
+                <select id="katModeTempat" class="form-control" onchange="katModeTempatChange()">
+                  <option value="INPUT">Input manual / picker</option>
+                  <option value="FIELD">Ambil dari field</option>
+                  <option value="NONE">Tanpa tempat</option>
+                </select>
+              </div>
+              <div class="col-md-6" id="wrapKatModeField">
+                <label class="form-label">Field Sumber Tempat</label>
+                <select id="katModeField" class="form-control"><option value="">— pilih field —</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="text-end mt-2">
+            <button type="button" class="dsc-btn-primary" style="margin-bottom:0;" onclick="simpanKategoriSafe()"><i class="bi bi-save"></i> Simpan Kategori</button>
+          </div>
+        </div>
+
+        <div class="wizard-step">
+          <div class="wizard-step-title"><i class="bi bi-ui-radios"></i> Field Tambahan (Schema)</div>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Tahap</label>
+              <select id="fTahap" class="form-control">
+                <option value="2">2 · Kegiatan</option>
+                <option value="3">3 · Detail</option>
+              </select>
+            </div>
+            <div class="col-md-5"><label class="form-label">Label Field</label><input type="text" id="fLabel" class="form-control" placeholder="mis. Nama Acara"></div>
+            <div class="col-md-4">
+              <label class="form-label">Tipe</label>
+              <select id="fTipe" class="form-control" onchange="fTipeChange()">
+                <option value="text">Teks</option>
+                <option value="number">Angka</option>
+                <option value="textarea">Textarea</option>
+                <option value="select">Pilihan</option>
+                <option value="repeater">Daftar (repeater)</option>
+              </select>
+            </div>
+            <div class="col-md-6" id="wrapFOpsi">
+              <label class="form-label" id="fOpsiLabel">Pilihan (pisahkan koma)</label>
+              <input type="text" id="fOpsi" class="form-control" placeholder="mis. Roda dua,Roda empat">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Sumber Data</label>
+              <select id="fSumber" class="form-control">
+                <option value="">— bebas —</option>
+                <option value="master_orang">Master Orang</option>
+                <option value="master_aset:tempat">Master Tempat</option>
+                <option value="master_aset:kendaraan">Master Kendaraan</option>
+                <option value="master_aset:barang">Master Barang</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <div class="switch-card"><input class="form-check-input" type="checkbox" id="fRequired"><label class="form-check-label" for="fRequired" style="font-size:.8rem; font-weight:700; margin:0;">Wajib diisi</label></div>
+            </div>
+            <div class="col-md-6">
+              <div class="switch-card"><input class="form-check-input" type="checkbox" id="fOpsional"><label class="form-check-label" for="fOpsional" style="font-size:.8rem; font-weight:700; margin:0;">Opsional (toggle)</label></div>
+            </div>
+          </div>
+          <div class="text-end mt-2">
+            <button type="button" class="dsc-btn-primary" style="margin-bottom:0;" onclick="simpanFieldForm()"><i class="bi bi-plus-lg"></i> Tambah Field</button>
+          </div>
+          <div style="font-size:.72rem; font-weight:800; color:var(--neo-text-sub); text-transform:uppercase; margin:12px 0 8px;">Field terdaftar</div>
+          <div class="sm-list-well">
+            <div id="fieldListContainer"></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 </div>
 
-<style>
-/* ===== PENANDA VISUAL BATAL ===== */
-.pinterest-card-batal { opacity: .65; }
-.pinterest-card-batal .pinterest-card-title { text-decoration: line-through; color: var(--neo-status-inactive); }
-.disposisi-card-batal { opacity: .65; border-left: 4px solid var(--neo-status-inactive); }
-.agenda-item-batal { opacity: .6; }
-.agenda-item-batal .agenda-widget-title { text-decoration: line-through; }
-.calendar-event-batal {
-  text-decoration: line-through;
-  background: rgba(245, 101, 101, .15);
-  color: var(--neo-status-inactive);
+<script>
+/* ===== Logika Kategori Baru ===== */
+function newKategori() {
+  window.__katDirty = false;
+  if (typeof currentKatEdit !== 'undefined') currentKatEdit = '';
+  var g = function(id){ return document.getElementById(id); };
+  g('katId').value = '';
+  g('katNama').value = '';
+  g('katTujuan').value = '';
+  g('katBalasan').value = '';
+  g('katLabel2').value = '';
+  g('katLabel3').value = '';
+  g('katAktif').checked = true;
+  g('katPakaiJadwal').checked = false;
+  g('katModeTempat').value = 'INPUT';
+  if (typeof katJadwalChange === 'function') katJadwalChange();
+  g('fieldListContainer').innerHTML = '<div style="color:var(--neo-text-muted); font-size:.78rem; padding:8px;">Simpan kategori dulu, lalu tambahkan field di sini.</div>';
+  g('katNama').focus();
+  UIHelper.showToast('Mode kategori baru — isi lalu Simpan.', true);
 }
-.calendar-event-batal:hover {
-  background: rgba(245, 101, 101, .25);
-  color: var(--neo-status-inactive);
+
+function simpanKategoriSafe() {
+  var g = function(id){ return document.getElementById(id); };
+  var nama = g('katNama').value.trim();
+  if (!nama) { UIHelper.showToast('Nama kategori wajib diisi.', false); g('katNama').focus(); return; }
+
+  if (!g('katId').value) {
+    var base = 'KAT-' + nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+    var id = base || ('KAT-' + Date.now());
+    var n = 2;
+    while (kategoriList.some(function(k){ return k.id === id; })) { id = base + '-' + n; n++; }
+    g('katId').value = id;
+  }
+  var savedId = g('katId').value;
+
+  simpanKategoriForm();
+
+  setTimeout(function(){
+    if (typeof currentKatEdit !== 'undefined') { currentKatEdit = savedId; }
+    if (typeof renderFieldList === 'function') renderFieldList(savedId);
+    if (typeof refreshKatFieldOptions === 'function') refreshKatFieldOptions('');
+    if (typeof renderKategoriList === 'function') renderKategoriList();
+  }, 700);
+}
+</script>
+
+<style>
+/* =========================================================
+   SURAT MASUK & DISPOSISI — WELL PER KARTU (div-grid, 6 kolom)
+   ========================================================= */
+.page-content-scroll:has(#page-surat-masuk.active){ overflow:hidden !important; }
+#page-surat-masuk{ height:100%; display:flex; flex-direction:column; }
+
+/* toolbar */
+.sm-toolbar { background:var(--neo-surface); border-radius:20px; padding:14px 16px; box-shadow:var(--neo-soft-raised); display:flex; flex-direction:column; gap:12px; margin-bottom:14px; flex:0 0 auto; }
+.sm-toolbar-row1 { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+.sm-search { width:auto; flex:1; min-width:220px; max-width:440px; }
+.sm-actions { display:flex; gap:10px; align-items:center; }
+.sm-btn-subtle { background:var(--neo-surface); border:none; color:var(--neo-text-sub); font-weight:700; font-size:0.78rem; padding:10px 16px; border-radius:999px; box-shadow:var(--neo-soft-flat); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+.sm-btn-subtle:hover { color:var(--neo-text-heading); box-shadow:var(--neo-soft-raised); transform:translateY(-1px); }
+
+.sm-segment { display:flex; gap:8px; flex-wrap:wrap; }
+.sm-seg { border:none; background:var(--neo-surface); border-radius:999px; padding:8px 14px; font-size:0.75rem; font-weight:800; color:var(--neo-text-sub); box-shadow:var(--neo-soft-raised); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+.sm-seg:hover { color:var(--neo-text-heading); }
+.sm-seg .sm-seg-count { background:var(--neo-surface); box-shadow:var(--neo-soft-inset); border-radius:99px; padding:2px 8px; font-size:0.66rem; color:var(--neo-text-sub); }
+.sm-seg.active { box-shadow:var(--neo-soft-inset); color:var(--neo-accent); }
+.sm-seg.active .sm-seg-count { color:var(--neo-accent); }
+
+/* wadah scroll daftar kartu */
+.sm-table-wrap { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:6px; }
+.sm-table-wrap::-webkit-scrollbar { width:6px; }
+.sm-table-wrap::-webkit-scrollbar-thumb { background:rgba(163,177,198,0.4); border-radius:10px; }
+
+/* grid kolom bersama (header + isi sejajar) — 6 kolom */
+.sm-grid {
+  display:grid;
+  grid-template-columns: 64px 110px minmax(180px,1fr) 150px 96px 188px;
+  align-items:center;
+  gap:8px;
+}
+.sm-head {
+  position:sticky; top:0; z-index:5;
+  padding:10px 18px; margin-bottom:8px;
+  font-size:0.72rem; font-weight:800; color:var(--neo-text-sub);
+  text-transform:uppercase; letter-spacing:0.05em;
+  background:#d6dbe4;
+  border-radius:14px;
+  box-shadow: inset 2px 2px 5px rgba(150,162,182,0.5), inset -2px 2px 5px rgba(255,255,255,0.6);
+}
+.sm-head > div { text-align:center; }
+
+/* WELL cekung per kartu */
+.sm-well {
+  background:#d6dbe4;
+  border-radius:18px;
+  padding:9px;
+  margin-bottom:16px;
+  box-shadow: inset 4px 4px 9px rgba(150,162,182,0.55), inset -4px -4px 9px rgba(255,255,255,0.7);
+  transition: box-shadow .2s ease;
+}
+.sm-well:hover {
+  box-shadow: inset 4px 4px 9px rgba(150,162,182,0.55), inset -4px -4px 9px rgba(255,255,255,0.7), 0 0 0 1px rgba(102,126,234,0.35);
+}
+
+/* permukaan terang di dalam well */
+.sm-main, .sm-foot {
+  background:var(--neo-surface);
+  border-radius:12px;
+  box-shadow: 2px 2px 5px rgba(150,162,182,0.4), -2px -2px 4px rgba(255,255,255,0.5), 0 0 0 1px rgba(163,177,198,0.28);
+}
+.sm-main { padding:12px 18px; margin-bottom:7px; }
+.sm-main > .sm-c { text-align:center; font-size:0.85rem; font-weight:600; color:var(--neo-text-heading); min-width:0; }
+.sm-main > .sm-c.sm-left { text-align:left; }
+.sm-main > .sm-c.sm-detail { text-align:left; }
+.sm-detail small { display:block; color:var(--neo-text-sub); font-weight:600; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* footer anak */
+.sm-foot { width:92%; margin:0 auto; padding:7px 14px; cursor:pointer; }
+.sm-foot .sm-exp-bar { box-shadow:none; background:transparent; padding:2px 4px; min-height:34px; }
+
+/* kartu batal */
+.sm-well.sm-batal { opacity:0.62; }
+
+/* komponen */
+.sm-agenda-pill { display:inline-block; min-width:40px; text-align:center; background:var(--neo-surface); box-shadow:var(--neo-soft-inset); border-radius:99px; padding:5px 10px; font-weight:800; font-size:0.78rem; color:var(--neo-text-heading); }
+.sm-date { font-size:0.78rem; color:var(--neo-text-sub); font-weight:700; white-space:nowrap; }
+.sm-kat-chip { font-size:0.66rem; font-weight:700; padding:4px 10px; border-radius:99px; display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sm-empty { text-align:center; padding:40px 10px; color:var(--neo-text-muted); font-weight:600; font-size:0.85rem; }
+.sm-empty i { font-size:2rem; display:block; margin-bottom:8px; opacity:0.5; }
+
+.sm-exp-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--neo-surface); border-radius:12px; padding:6px 12px; box-shadow:var(--neo-soft-inset); cursor:pointer; transition:all .2s ease; min-height:38px; }
+.sm-exp-bar:hover { box-shadow:var(--neo-soft-flat); }
+.sm-exp-corner { color:var(--neo-text-muted); font-size:.7rem; }
+.sm-exp-bar .exp-stepper { width:160px; flex-shrink:0; }
+.sm-exp-bar .exp-actions { margin-left:auto; display:flex; gap:8px; align-items:center; flex-shrink:0; }
+
+/* detail timeline inline */
+#ekspedisiDetail { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:6px; }
+
+/* mini stepper 7 tahap */
+.exp-stepper { display:flex; align-items:center; width:190px; flex-shrink:0; }
+.exp-step { display:flex; align-items:center; flex:1; }
+.exp-step:last-child { flex:0 0 auto; }
+.exp-dot { width:12px; height:12px; border-radius:50%; background:var(--neo-surface); box-shadow:var(--neo-soft-inset); flex-shrink:0; transition:all 0.3s; }
+.exp-line { flex:1; height:2px; background:rgba(163,177,198,0.3); margin:0 4px; }
+.exp-line.done-line { background:var(--neo-accent); }
+.exp-step.done .exp-dot { background:var(--neo-accent); box-shadow:0 0 8px rgba(102,126,234,0.5); }
+.exp-step.current .exp-dot { animation:expPulse 1.6s infinite; }
+@keyframes expPulse { 0%,100% { box-shadow:0 0 0 0 rgba(102,126,234,0.5); } 50% { box-shadow:0 0 0 6px rgba(102,126,234,0); } }
+.exp-step.ok .exp-dot { background:var(--neo-status-active); box-shadow:0 0 8px rgba(72,187,120,0.5); }
+.exp-stepper.exp-batal .exp-dot { background:rgba(163,177,198,0.4); box-shadow:none; animation:none; }
+.exp-stepper.exp-batal .exp-line { background:rgba(163,177,198,0.2); }
+
+.exp-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.exp-timeline-btn { background:var(--neo-surface); border:none; color:var(--neo-text-heading); font-weight:700; font-size:0.72rem; padding:7px 14px; border-radius:999px; box-shadow:var(--neo-soft-flat); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s; }
+.exp-timeline-btn:hover { box-shadow:var(--neo-soft-raised); color:var(--neo-accent); }
+
+/* timeline detail */
+.tl-item { display:flex; gap:12px; padding:8px 0; position:relative; }
+.tl-line { position:absolute; left:5px; top:26px; bottom:-8px; width:2px; background:rgba(163,177,198,.3); }
+.tl-dot { width:12px; height:12px; border-radius:50%; background:var(--neo-accent); box-shadow:0 0 8px rgba(102,126,234,.5); margin-top:4px; flex-shrink:0; }
+.tl-item.future .tl-dot { background:rgba(163,177,198,.4); box-shadow:none; }
+.tl-item.future .tl-line { background:rgba(163,177,198,.15); }
+.tl-judul { font-size:.82rem; font-weight:800; color:var(--neo-text-heading); }
+.tl-item.future .tl-judul { color:var(--neo-text-muted); }
+.tl-meta { font-size:.68rem; color:var(--neo-text-sub); font-weight:600; }
+.dot-status { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; }
+
+/* baki inset (modal kategori) */
+.sm-list-well {
+  background:var(--neo-surface);
+  border-radius:16px;
+  box-shadow:var(--neo-soft-inset);
+  padding:10px;
+  max-height:190px;
+  overflow-y:auto;
+  margin-bottom:16px;
+}
+.sm-list-well::-webkit-scrollbar { width:5px; }
+.sm-list-well::-webkit-scrollbar-thumb { background:rgba(163,177,198,0.35); border-radius:10px; }
+.sm-list-well .autofill-item {
+  background:var(--neo-surface) !important;
+  box-shadow:var(--neo-soft-flat) !important;
+  border-radius:12px !important;
+  padding:10px 12px !important;
+  margin-bottom:8px !important;
+  transition:all 0.2s ease !important;
+  border:1px solid transparent !important;
+}
+.sm-list-well .autofill-item:last-child { margin-bottom:0 !important; }
+.sm-list-well .autofill-item:hover {
+  box-shadow:var(--neo-soft-raised) !important;
+  transform:translateY(-1px);
+  border-color:rgba(102,126,234,0.15) !important;
+}
+#modalKategori .sm-list-well { margin-bottom: 30px; }
+#modalKategori .wizard-step { border-top: 6px solid rgba(163,177,198,0.28); padding-top: 16px; margin-top: 16px; }
+
+@media (max-width: 1100px) {
+  .sm-grid { grid-template-columns: 56px 90px minmax(140px,1fr) 120px 80px 150px; gap:6px; }
+  .sm-exp-bar .exp-stepper { display:none; }
 }
 </style>

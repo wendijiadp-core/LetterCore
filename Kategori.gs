@@ -70,13 +70,39 @@ var Kategori = (function () {
       } catch (e) { return { success: false, message: e.toString() }; }
     },
 
-    hapusField: function (idField) {
+    hapusField: function (idField, idKategori) {
       try {
-        var s = _ss().getSheetByName('form_schema'), h = _h(s), data = s.getDataRange().getValues();
-        for (var i = 1; i < data.length; i++) if (String(data[i][h.indexOf('id_field')] || '').trim() === idField) { s.getRange(i + 1, h.indexOf('aktif') + 1).setValue('FALSE'); break; }
-        return { success: true, message: 'Field dinonaktifkan.' };
-      } catch (e) { return { success: false, message: e.toString() }; }
-    }
+        var s = _ss().getSheetByName('form_schema');
+        var h = s.getRange(1, 1, 1, Math.max(s.getLastColumn(), 1)).getDisplayValues()[0];
+        var data = s.getDataRange().getValues();
+        var target = String(idField || '').trim();
+        var kat = String(idKategori || '').trim();
+        var deleted = 0;
+        
+        // Hapus dari bawah ke atas (agar index tidak bergeser)
+        for (var i = data.length - 1; i >= 1; i--) {
+          var idVal = String(data[i][h.indexOf('id_field')] || '').trim();
+          var keyVal = String(data[i][h.indexOf('field_key')] || '').trim();
+          var katVal = String(data[i][h.indexOf('id_kategori')] || '').trim();
+          
+          // Hapus jika: id_field cocok, ATAU (field_key cocok DAN kategori sama)
+          var matchById = (idVal === target);
+          var matchByKeyAndKat = (keyVal === target && kat && katVal === kat);
+          
+          if (matchById || matchByKeyAndKat) {
+            s.deleteRow(i + 1);
+            deleted++;
+          }
+        }
+        
+        if (deleted > 0) {
+          return { success: true, message: deleted + ' field dihapus.' };
+        }
+        return { success: false, message: 'Field tidak ditemukan.' };
+      } catch (e) { 
+        return { success: false, message: e.toString() }; 
+      }
+    },
   };
 })();
 

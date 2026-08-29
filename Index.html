@@ -89,15 +89,22 @@
         </div>
         <div class="nav-link" onclick="switchPage('page-surat-masuk')" id="nav-page-surat-masuk" role="button">
           <div class="nav-icon-box"><i class="bi bi-inbox-fill"></i></div>
-          <span>Surat Masuk</span>
+          <span>Surat Masuk & Disposisi</span>
         </div>
-        <div class="nav-link" onclick="switchPage('page-disposisi')" id="nav-page-disposisi" role="button">
-          <div class="nav-icon-box"><i class="bi bi-file-earmark-word-fill"></i></div>
-          <span>Ekspedisi & Disposisi</span>
+        <div class="nav-link" onclick="switchPage('page-surat-keluar')" id="nav-page-surat-keluar" role="button">
+          <div class="nav-icon-box"><i class="bi bi-envelope-paper-fill"></i></div>
+          <span>Surat Keluar</span>
         </div>
         <div class="nav-link" onclick="switchPage('page-kalendar')" id="nav-page-kalendar" role="button">
           <div class="nav-icon-box"><i class="bi bi-calendar-event-fill"></i></div>
           <span>Kalender Agenda</span>
+        </div>
+
+        <div class="sidebar-divider" style="margin: 8px 0;"></div>
+
+        <div class="nav-link" onclick="openPengaturan()" role="button">
+          <div class="nav-icon-box"><i class="bi bi-gear-fill"></i></div>
+          <span>Pengaturan</span>
         </div>
       </div>
 
@@ -131,8 +138,8 @@
         <div class="page-content-scroll" style="flex-grow: 1; overflow-y: auto; position: relative; min-height: 0;">
           <div id="page-dashboard" class="page-section active"><?!= include('View_Dashboard'); ?></div>
           <div id="page-surat-masuk" class="page-section d-none"><?!= include('View_SuratMasuk'); ?></div>
+          <div id="page-surat-keluar" class="page-section d-none"><?!= include('View_SuratKeluar'); ?></div>
           <div id="page-kalendar" class="page-section d-none"><?!= include('View_Kalender'); ?></div>
-          <div id="page-disposisi" class="page-section d-none"><?!= include('View_Disposisi'); ?></div>
         </div>
 
       </div>
@@ -163,11 +170,14 @@
         <div id="realtimeDate" class="clock-date">-</div>
       </div>
 
-      <div style="font-size: 0.7rem; font-weight: 800; color: var(--neo-text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Agenda Bulan Ini</div>
-      <div id="sidebarAgendaList" class="d-flex flex-column" style="flex-grow: 1; overflow-y: auto; max-height: 340px; padding-right: 4px;">
-        <div style="text-align: center; padding: 2rem 1rem; color: var(--neo-text-muted); font-size: 0.75rem; font-weight: 600;">
-          <div class="spinner-border spinner-border-sm" style="color: var(--neo-accent);" role="status"></div>
-          <div class="mt-2">Memuat agenda...</div>
+      <div style="background: var(--neo-surface); border-radius: var(--neo-radius-lg); padding: 1rem; box-shadow: var(--neo-shadow-inset); position: relative; overflow: hidden; margin-bottom: 1rem; display: flex; flex-direction: column; flex-grow: 1; min-height: 240px;">
+        <div style="position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: var(--neo-accent-gradient); border-radius: 0 0 3px 3px; opacity: 0.6;"></div>
+        <div style="margin-bottom: 0.75rem; font-size: 0.80rem; font-weight: 800; color: var(--neo-text-heading);">Agenda Bulan Ini</div>
+        <div id="sidebarAgendaList" class="d-flex flex-column" style="flex-grow: 1; overflow-y: auto; padding-right: 4px;">
+          <div style="text-align: center; padding: 2rem 1rem; color: var(--neo-text-muted); font-size: 0.75rem; font-weight: 600;">
+            <div class="spinner-border spinner-border-sm" style="color: var(--neo-accent);" role="status"></div>
+            <div class="mt-2">Memuat agenda...</div>
+          </div>
         </div>
       </div>
 
@@ -203,6 +213,39 @@
   <?!= include('JS_Api'); ?>
   <?!= include('JS_Render'); ?>
   <?!= include('JS_Modals'); ?>
+  <?!= include('JS_SuratKeluar'); ?>
+
+  <script>
+    function openEkspedisi(id) {
+      currentEkspedisiId = id;
+      var tampil = function (riwayat) {
+        renderEkspedisiInline(riwayat || []);
+        var tb = document.getElementById('smToolbar');
+        var tw = document.getElementById('smTableWrap');
+        var d  = document.getElementById('ekspedisiDetail');
+        if (tb) tb.classList.add('d-none');
+        if (tw) tw.classList.add('d-none');
+        if (d) { d.classList.remove('d-none'); d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      };
+      tampil((ekspedisiMap[id] || {}).riwayat || []);
+      UIHelper.callApi('apiGetEkspedisi', [{ idSurat: id }], function (r) {
+        renderEkspedisiInline(r || []);
+        if (r) ekspedisiMap[id] = Object.assign({}, ekspedisiMap[id], {
+          riwayat: r,
+          tahap: (r.length ? r[r.length - 1].tahap : (ekspedisiMap[id] || {}).tahap)
+        });
+      }, function () {}, true);
+    }
+
+    function tutupEkspedisi() {
+      var tb = document.getElementById('smToolbar');
+      var tw = document.getElementById('smTableWrap');
+      var d  = document.getElementById('ekspedisiDetail');
+      if (d) d.classList.add('d-none');
+      if (tb) tb.classList.remove('d-none');
+      if (tw) tw.classList.remove('d-none');
+    }
+  </script>
 
   <script>
     function handleLogout() {
@@ -273,8 +316,7 @@
     }
 
     function switchPage(pageId) {
-      /* Masuk menu ekspedisi → selalu mulai dari DAFTAR (tutup detail lama) */
-      if (pageId === 'page-disposisi' && typeof tutupEkspedisi === 'function') tutupEkspedisi();
+      if (pageId === 'page-surat-masuk' && typeof tutupEkspedisi === 'function') tutupEkspedisi();
 
       document.querySelectorAll('.page-section').forEach(el => {
         el.classList.remove('active');
@@ -288,10 +330,10 @@
       if (navBtn) navBtn.classList.add('active');
       
       const titles = {
-        'page-dashboard': { title: 'Dashboard', sub: 'Overview sistem arsip & agenda kegiatan' },
-        'page-surat-masuk': { title: 'Surat Masuk', sub: 'Kelola arsip persuratan dan agenda' },
-        'page-disposisi':  { title: 'Ekspedisi & Disposisi', sub: 'Tracking surat & lembar disposisi pimpinan' },
-        'page-kalendar':   { title: 'Kalender Agenda', sub: 'Jadwal kegiatan bulanan interaktif' }
+        'page-dashboard':     { title: 'Dashboard', sub: 'Overview sistem arsip & agenda kegiatan' },
+        'page-surat-masuk':   { title: 'Surat Masuk & Disposisi', sub: 'Kelola arsip persuratan, disposisi & ekspedisi' },
+        'page-surat-keluar':  { title: 'Surat Keluar', sub: 'Arsip surat keluar: balasan & mandiri' },
+        'page-kalendar':      { title: 'Kalender Agenda', sub: 'Jadwal kegiatan bulanan interaktif' }
       };
       const info = titles[pageId] || { title: 'Letter Core', sub: '' };
       document.getElementById('pageTitle').innerText = info.title;
@@ -300,15 +342,13 @@
       try {
         if (pageId === 'page-kalendar' && typeof renderConventionalCalendar === 'function') renderConventionalCalendar();
         if (pageId === 'page-surat-masuk' && typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
+        if (pageId === 'page-surat-keluar' && typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
         if (pageId === 'page-dashboard' && typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
-        if (pageId === 'page-disposisi' && typeof renderDisposisiCards === 'function') renderDisposisiCards();
       } catch (e) { console.error('[switchPage]', e); }
     }
   </script>
 
   <script>
-/* Patch: topbar header hanya tampil di halaman non-Dashboard.
-   Briefing sudah menggantikan fungsinya di Dashboard. */
 (function () {
   function applyTopbar() {
     var dashActive = document.getElementById('page-dashboard') &&
@@ -316,9 +356,7 @@
     var tb = document.querySelector('.topbar-header');
     if (tb) tb.style.display = dashActive ? 'none' : '';
   }
-  // Pasang segera
   applyTopbar();
-  // Pasang ulang setiap kali switchPage dipanggil
   var _orig = window.switchPage;
   if (typeof _orig === 'function') {
     window.switchPage = function (id) {
@@ -326,6 +364,103 @@
       setTimeout(applyTopbar, 50);
     };
   }
+})();
+</script>
+
+<script>
+(function(){
+  if (window.__autoSync) return; window.__autoSync = true;
+  var lastVersion = '0';
+  var isRefreshing = false;
+  var POLL_INTERVAL = 3000;
+  var FIRST_CHECK = 2000;
+
+  function _applyBootGlobal(d){
+    if (!d) return;
+    if (d.surat) rawDataSurat = d.surat;
+    if (d.kategori) kategoriList = d.kategori;
+    if (d.ekspedisi) ekspedisiMap = d.ekspedisi;
+    if (d.masterAset) masterAset = d.masterAset;
+    if (d.masterOrang) masterOrang = d.masterOrang;
+    if (d.suratKeluar) rawDataSuratKeluar = d.suratKeluar;
+    if (d.jenisKeluar) _skJenisCache = d.jenisKeluar;
+    if (d.agenda) _agendaList = d.agenda;
+    if (d.liburManual) _liburManual = d.liburManual;
+    // BARU: mapping kegiatan & ruang SpaceCore
+    
+    if (d.ruangSpaceCore) daftarRuangSpaceCore = d.ruangSpaceCore;
+    if (typeof _lcCache !== 'undefined') {
+      _lcCache.tplKeluar = d.templates || [];
+      _lcCache.placeholder = d.placeholders || [];
+      _lcCache.fieldKeys = d.fieldKeys || [];
+      _lcCache.tplDisp = d.tplDisp || [];
+      _lcCache.transform = d.transforms || [];
+    }
+    try {
+      if (typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
+      if (typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
+      if (typeof renderSidebarAgenda === 'function') renderSidebarAgenda();
+      if (typeof renderConventionalCalendar === 'function') renderConventionalCalendar();
+      if (typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
+    } catch (e) { console.warn('[autosync render]', e); }
+  }
+  window._applyBootGlobal = _applyBootGlobal;
+
+  function showSyncPill(state){
+    var el = document.getElementById('lcSyncPill');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'lcSyncPill';
+      el.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99999;background:var(--neo-surface);box-shadow:var(--neo-soft-raised-lg);border-radius:999px;padding:8px 16px;font-size:.72rem;font-weight:800;color:var(--neo-text-sub);display:flex;gap:8px;align-items:center;transition:opacity .3s;opacity:0;';
+      document.body.appendChild(el);
+    }
+    if (state === 'sync') {
+      el.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.8rem;height:.8rem;"></span> Memperbarui…';
+      el.style.opacity = '1';
+    } else if (state === 'done') {
+      el.innerHTML = '<i class="bi bi-check-circle-fill" style="color:var(--neo-status-active);"></i> Data diperbarui';
+      el.style.opacity = '1';
+      setTimeout(function(){ el.style.opacity = '0'; }, 1800);
+    } else {
+      el.style.opacity = '0';
+    }
+  }
+
+  function silentRefresh(){
+    if (isRefreshing) return;
+    isRefreshing = true;
+    showSyncPill('sync');
+    UIHelper.callApi('apiBoot', [], function(boot){
+      try { localStorage.setItem('lcBoot', JSON.stringify(boot)); } catch(e){}
+      _applyBootGlobal(boot);
+      showSyncPill('done');
+      isRefreshing = false;
+    }, function(e){
+      console.warn('[autosync boot failed]', e);
+      showSyncPill('hide');
+      isRefreshing = false;
+    }, true);
+  }
+
+  function checkVersion(){
+    if (isRefreshing) return;
+    UIHelper.callApi('apiGetVersion', [], function(d){
+      var v = (d && d.version) || '0';
+      if (lastVersion !== '0' && v !== lastVersion) {
+        console.log('[autosync] version changed', lastVersion, '→', v);
+        silentRefresh();
+      }
+      lastVersion = v;
+    }, function(){ }, true);
+  }
+
+  setTimeout(function(){
+    UIHelper.callApi('apiGetVersion', [], function(d){
+      lastVersion = (d && d.version) || '0';
+      console.log('[autosync] initial version =', lastVersion);
+    }, function(){}, true);
+  }, FIRST_CHECK);
+
+  setInterval(checkVersion, POLL_INTERVAL);
 })();
 </script>
 </body>

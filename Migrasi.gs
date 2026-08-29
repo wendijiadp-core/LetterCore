@@ -1,9 +1,12 @@
 /**
  * ============================================================================
- * LETTERCORE - MIGRASI & SEED (Batch 1)
+ * LETTERCORE - MIGRASI & SEED (Batch 1 + V2 + V3)
  * ============================================================================
  * Cara pakai: Jalankan fungsi jalankanMigrasi() SEKALI dari Editor
  * (akan memicu otorisasi Sheets). Aman dijalankan ulang (idempotent).
+ * 
+ * V3 BARU: Tambah sheet kegiatan + kolom ID Kegiatan di Surat_Masuk
+ *          + kolom ID Ruang di Detail_Jadwal (untuk integrasi SpaceCore)
  * ============================================================================
  */
 
@@ -67,7 +70,6 @@ function _seedKategori(ss, report) {
     rows.forEach(function (r) { sheet.appendRow(r); });
     report.push('kategori_surat: seed ' + rows.length + ' kategori');
   } else {
-    // Backfill default disposisi/balasan untuk kategori yang kosong
     var data = sheet.getDataRange().getDisplayValues();
     var idxId = data[0].indexOf('id_kategori');
     var idxTujuan = data[0].indexOf('tujuan_disposisi_default');
@@ -92,7 +94,6 @@ function _seedSchema(ss, report) {
     return [id, kat, key, label, tipe, opsi, req, ph, ur, 'TRUE', grup, sumber, opsional];
   };
   var rows = [
-    // --- KENDARAAN (bahan Surat Jalan) ---
     R('F-KND-01','KAT-KEND','pj_nama','Nama Penanggung Jawab','text','','true','',1,'KENDARAAN','master_orang','FALSE'),
     R('F-KND-02','KAT-KEND','pj_nip','NIP','text','','true','',2,'KENDARAAN','','FALSE'),
     R('F-KND-03','KAT-KEND','pj_jabatan','Jabatan','text','','true','',3,'KENDARAAN','','FALSE'),
@@ -101,12 +102,9 @@ function _seedSchema(ss, report) {
     R('F-KND-06','KAT-KEND','keperluan','Keperluan/Kegiatan','textarea','','true','',6,'KENDARAAN','','FALSE'),
     R('F-KND-07','KAT-KEND','tujuan_alamat','Kota/Alamat Tujuan','text','','true','',7,'KENDARAAN','','FALSE'),
     R('F-KND-08','KAT-KEND','sopir_nama','Nama Sopir','text','','false','',8,'KENDARAAN','master_orang','FALSE'),
-    // --- BARANG (repeater) ---
     R('F-BRG-01','KAT-BARANG','daftar_barang','Daftar Barang','repeater','nama,jumlah,keterangan','true','',1,'DAFTAR_BARANG','master_aset:barang','FALSE'),
-    // --- ORANG (repeater, utk Surat Tugas dll) ---
     R('F-ORG-01','KAT-TUGAS','daftar_orang','Orang yang Ditugaskan','repeater','nama,nip,jabatan','true','',1,'ORANG','master_orang','FALSE'),
     R('F-TGS-01','KAT-TUGAS','maksud_tugas','Maksud Tugas','textarea','','false','',2,'UMUM','','FALSE'),
-    // --- Field lain per kategori ---
     R('F-IZN-01','KAT-IZIN','jenis_kegiatan','Jenis Kegiatan','text','','true','',1,'DETAIL_KEGIATAN','','FALSE'),
     R('F-IZN-02','KAT-IZIN','sifat_surat','Sifat Surat','select','Penting,Segera,Biasa','false','',2,'UMUM','','TRUE'),
     R('F-TMP-01','KAT-TEMPAT','peserta_perkiraan','Perkiraan Peserta','number','','false','',1,'DETAIL_KEGIATAN','','TRUE'),
@@ -149,12 +147,11 @@ function _seedMaster(ss, report) {
   } else report.push('master_orang: sudah terisi');
 }
 
-/* ================= ENTRY POINT ================= */
+/* ================= ENTRY POINT BATCH 1 ================= */
 function jalankanMigrasi() {
   var ss = _ssMigrasi();
   var report = [];
 
-  // 1) Pastikan semua sheet + header
   for (var name in TARGET_SCHEMA) {
     var sheet = ss.getSheetByName(name);
     if (!sheet) sheet = ss.insertSheet(name);
@@ -162,12 +159,11 @@ function jalankanMigrasi() {
     report.push(name + ': ' + (added > 0 ? ('+' + added + ' kolom baru') : 'header lengkap'));
   }
 
-  // 2) Seed
   _seedKategori(ss, report);
   _seedSchema(ss, report);
   _seedMaster(ss, report);
 
-  console.log('=== LAPORAN MIGRASI ===\n' + report.join('\n'));
+  console.log('=== LAPORAN MIGRASI BATCH 1 ===\n' + report.join('\n'));
   return report.join('\n');
 }
 
@@ -247,7 +243,6 @@ function _v2SeedSchema() {
     return -1;
   };
 
-  /* 1) isi tahap untuk field yang sudah ada */
   var TAHAP_MAP = {
     'KAT-IZIN':   { jenis_kegiatan: 2 },
     'KAT-TEMPAT': { peserta_perkiraan: 2 },
@@ -260,7 +255,6 @@ function _v2SeedSchema() {
     if (row > -1) s.getRange(row, iTahap + 1).setValue(TAHAP_MAP[kat][key]);
   }
 
-  /* 2) field baru: Penanggung Jawab & Daftar Pembimbing (repeater opsional) */
   var NEWROWS = [];
   ['KAT-IZIN','KAT-DANA','KAT-TEMPAT','KAT-BARANG'].forEach(function (k) {
     var suf = k.slice(4);
@@ -269,7 +263,6 @@ function _v2SeedSchema() {
   });
   NEWROWS.forEach(function (r) { s.appendRow(r); });
 
-  /* 3) kategori "lainnya" dikosongkan (field dinonaktifkan, bisa diaktifkan admin) */
   var OTHERS = ['KAT-LISTRIK','KAT-BALIHO','KAT-DINAS','KAT-TUGAS','KAT-KUNJUNG','KAT-UND'];
   for (var i = 1; i < data.length; i++) {
     var k2 = String(data[i][iKat] || '').trim();
@@ -278,7 +271,6 @@ function _v2SeedSchema() {
     }
   }
 
-  /* marker agar tidak dijalankan ulang */
   s.appendRow(['MIG-V2','__SYS','__migrasi_v2','marker sistem','','','','',99,'FALSE','UMUM','','','']);
   return 'seed v2 selesai: ' + NEWROWS.length + ' field baru dibuat';
 }
@@ -289,4 +281,48 @@ function jalankanMigrasiV2() {
   var msg = _v2SeedSchema();
   console.log('=== MIGRASI V2 === ' + msg);
   return msg;
+}
+
+
+/* ============================================================================
+ * MIGRASI V3 — Integrasi Kegiatan + SpaceCore (BARU)
+ * Idempoten, aman dijalankan ulang, tidak merusak data existing
+ * ========================================================================== */
+
+function jalankanMigrasiV3() {
+  var ss = _ssMigrasi();
+  var report = [];
+
+  // 1) Buat sheet kegiatan jika belum ada
+  var sheetKeg = ss.getSheetByName('kegiatan');
+  if (!sheetKeg) {
+    sheetKeg = ss.insertSheet('kegiatan');
+    sheetKeg.appendRow(['id_kegiatan','nama','pemohon','tgl_mulai','tgl_selesai','catatan','dibuat_oleh','created_at']);
+    sheetKeg.setFrozenRows(1);
+    report.push('kegiatan: sheet baru dibuat');
+  } else {
+    var addedKeg = _ensureHeaders(sheetKeg, ['id_kegiatan','nama','pemohon','tgl_mulai','tgl_selesai','catatan','dibuat_oleh','created_at']);
+    report.push('kegiatan: ' + (addedKeg > 0 ? ('+' + addedKeg + ' kolom baru') : 'header lengkap'));
+  }
+
+  // 2) Tambah kolom ID Kegiatan di Surat_Masuk (aman, tidak merusak data lama)
+  var sheetSM = ss.getSheetByName('Surat_Masuk');
+  if (sheetSM) {
+    var addedSM = _ensureHeaders(sheetSM, ['ID Kegiatan']);
+    report.push('Surat_Masuk.ID_Kegiatan: ' + (addedSM > 0 ? 'kolom baru ditambahkan' : 'sudah ada'));
+  } else {
+    report.push('Surat_Masuk: sheet tidak ditemukan (jalankan Batch 1 dulu)');
+  }
+
+  // 3) Tambah kolom ID Ruang di Detail_Jadwal (aman, tidak merusak data lama)
+  var sheetDJ = ss.getSheetByName('Detail_Jadwal');
+  if (sheetDJ) {
+    var addedDJ = _ensureHeaders(sheetDJ, ['ID Ruang']);
+    report.push('Detail_Jadwal.ID_Ruang: ' + (addedDJ > 0 ? 'kolom baru ditambahkan' : 'sudah ada'));
+  } else {
+    report.push('Detail_Jadwal: sheet tidak ditemukan (jalankan Batch 1 dulu)');
+  }
+
+  console.log('=== LAPORAN MIGRASI V3 ===\n' + report.join('\n'));
+  return report.join('\n');
 }

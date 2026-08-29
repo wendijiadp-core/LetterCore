@@ -2,10 +2,10 @@
 /**
  * ============================================================================
  * LETTERCORE - WIZARD METADATA-DRIVEN + GUARD + PEMBATALAN + PERFORMA
+ * FINAL: independen + picker ruang SpaceCore + cek bentrok
  * ============================================================================
  */
 function el(id) { return document.getElementById(id); }
-
 var currentKategoriConfig = null;
 
 function neoShowModal(elx) {
@@ -19,7 +19,20 @@ function neoHideModal(elx) {
   if (typeof elx === 'string') elx = document.getElementById(elx);
   if (!elx) return;
   var inst = bootstrap.Modal.getInstance(elx);
-  if (inst) inst.hide();
+  if (inst) {
+    try { inst._isTransitioning = false; } catch (e) {}
+    try { inst.hide(); } catch (e) {}
+  }
+  setTimeout(function () {
+    if (elx.classList.contains('show')) {
+      elx.classList.remove('show');
+      elx.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+      document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+    }
+  }, 220);
 }
 
 /* ================= WIZARD NAV ================= */
@@ -55,13 +68,11 @@ function populateKategoriSelect() {
   s.innerHTML = '<option value="">— Umum —</option>' + kategoriList.map(function (k) { return '<option value="' + k.id + '">' + UIHelper.escapeHtml(k.nama) + '</option>'; }).join('');
   if (cur) s.value = cur;
 }
-
 function updateWizLabels() {
   var c = currentKategoriConfig || {};
   el('wizDot2').textContent = '2 · ' + (c.labelTahap2 || 'Kegiatan');
   el('wizDot3').textContent = '3 · ' + (c.labelTahap3 || 'Detail');
 }
-
 function onKategoriChange() {
   var id = el('selectKategori').value;
   var kat = kategoriList.find(function (k) { return k.id === id; });
@@ -88,7 +99,6 @@ function renderStep2() {
   var mode = cfg.modeTempat || 'INPUT';
   el('wrapTempat').classList.toggle('d-none', mode !== 'INPUT');
 }
-
 function renderStep3() {
   var cfg = currentKategoriConfig || {};
   el('step3Title').innerHTML = '<i class="bi bi-ui-radios"></i> ' + UIHelper.escapeHtml(cfg.labelTahap3 || 'Detail');
@@ -97,7 +107,6 @@ function renderStep3() {
     '<div class="col-12" style="color:var(--neo-text-muted); font-size:.8rem;">Tidak ada detail tambahan untuk jenis ini.</div>';
   renderOptionalBox('step3OptionalBox', 3);
 }
-
 function renderOptionalBox(boxId, tahap) {
   var ops = currentSchema.filter(function (f) { return f.tahap === tahap && f.opsional; });
   var ob = el(boxId);
@@ -122,11 +131,9 @@ function fieldHtml(f) {
   if (f.sumberData && f.sumberData.indexOf('master_aset:') === 0) srcBtn = pickerBtn(f.fieldKey, f.sumberData.split(':')[1]);
   return '<div class="col-md-6">' + lbl + '<div class="d-flex gap-1"><input type="' + (f.tipe === 'number' ? 'number' : 'text') + '"' + common + ' placeholder="' + UIHelper.escapeHtml(f.placeholder) + '" value="' + v + '">' + srcBtn + '</div></div>';
 }
-
 function pickerBtn(key, jenis) {
   return '<button type="button" class="btn-picker" onclick="openCardPicker(\'' + jenis + '\', function(a){ document.getElementById(\'cf_' + key + '\').value = a[\'nama\'] || \'\'; var n=document.getElementById(\'cf_' + key + '_nip\'); if(n&&a[\'nip\']) n.value=a[\'nip\']; var j=document.getElementById(\'cf_' + key + '_jabatan\'); if(j&&a[\'jabatan\']) j.value=a[\'jabatan\']; });"><i class="bi bi-grid-fill"></i> Pilih</button>';
 }
-
 function toggleOptionalField(key, on) {
   var f = currentSchema.find(function (x) { return x.fieldKey === key; });
   if (!f) return;
@@ -134,7 +141,6 @@ function toggleOptionalField(key, on) {
   var old = el('wrap_opt_' + key); if (old) old.remove();
   if (on && c) c.insertAdjacentHTML('beforeend', '<div class="col-md-6" id="wrap_opt_' + key + '">' + fieldHtml(f) + '</div>');
 }
-
 function addAdhocRow() {
   el('adhocContainer').insertAdjacentHTML('beforeend',
     '<div class="row g-2 mt-1 adhoc-row"><div class="col-4"><input class="form-control adhoc-label" placeholder="Nama field"></div><div class="col-7"><input class="form-control adhoc-value" placeholder="Isi"></div><div class="col-1"><button type="button" class="schedule-remove-btn" onclick="this.closest(\'.adhoc-row\').remove()"><i class="bi bi-x"></i></button></div></div>');
@@ -162,7 +168,7 @@ function repAdd(key, opsiStr) {
 function repRender(key, opsiStr) {
   var cols = opsiStr.split(','); var body = el('rep_' + key + '_body'); if (!body) return;
   body.innerHTML = repeaterValues[key].map(function (r, idx) {
-    return '<div class="autofill-item d-flex justify-content-between align-items-center"><span style="font-size:.78rem;">' + cols.map(function (c) { return UIHelper.escapeHtml(r[c] || ''); }).filter(Boolean).join(' · ') + '</span><button type="button" class="schedule-remove-btn" onclick="repRemove(\'' + key + '\',' + idx + ',\'' + opsiStr + '\')"><i class="bi bi-x"></i></button></div>';
+    return '<div class="autofill-item d-flex justify-content-between align-items-center"><span style="font-size:.78rem;">' + cols.map(function (c) { return UIHelper.escapeHtml(r[c] || ''); }).filter(Boolean).join(' · ') + '</span><button type="button" class="schedule-remove-btn" onclick="repRemove(\'' + key + ',' + idx + ',\'' + opsiStr + '\')"><i class="bi bi-x"></i></button></div>';
   }).join('') || '<div style="color:var(--neo-text-muted); font-size:.75rem;">Belum ada baris.</div>';
 }
 function repRemove(key, idx, opsiStr) { repeaterValues[key].splice(idx, 1); repRender(key, opsiStr); }
@@ -194,7 +200,7 @@ function openCardPicker(jenis, cb) {
 }
 function renderPicker() {
   var q = (el('pickerSearch').value || '').toLowerCase();
-  el('pickerGrid').innerHTML = pickerItems.filter(function (p) { return (p.nama || '').toLowerCase().indexOf(q) !== -1; }).map(function (p) {
+  el('pickerGrid').innerHTML = pickerItems.filter(function (p) { return (p.nama || '').toLowerCase().indexOf(q) !== -1 || (p.desc || '').toLowerCase().indexOf(q) !== -1; }).map(function (p) {
     return '<div class="picker-card" onclick="pickItem(' + pickerItems.indexOf(p) + ')"><i class="bi ' + p.icon + '"></i><div class="pc-name">' + UIHelper.escapeHtml(p.nama) + '</div><div class="pc-desc">' + UIHelper.escapeHtml(p.desc) + '</div></div>';
   }).join('') || '<div style="color:var(--neo-text-muted); font-size:.8rem;">Tidak ditemukan — ketik manual saja.</div>';
 }
@@ -223,7 +229,7 @@ function applyAutoFill(id) {
     var v = customFieldValues[k];
     if (typeof v === 'string' && v.charAt(0) === '[') { try { repeaterValues[k] = JSON.parse(v); delete customFieldValues[k]; } catch (e) {} }
   });
-  jadwalListState = (s.jadwalList || []).map(function (j) { return { tglMulai: indoToYMD(j.tglMulai), tglSelesai: indoToYMD(j.tglSelesai), tglKegiatan: indoToYMD(j.tglMulai), waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, waktuKegiatan: j.waktuKegiatan, tempatKegiatan: j.tempatKegiatan }; });
+  jadwalListState = (s.jadwalList || []).map(function (j) { return { tglMulai: indoToYMD(j.tglMulai), tglSelesai: indoToYMD(j.tglSelesai), tglKegiatan: indoToYMD(j.tglMulai), waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, waktuKegiatan: j.waktuKegiatan, tempatKegiatan: j.tempatKegiatan, idRuang: j.idRuang || '' }; });
   renderJadwalTableChildUI();
   neoHideModal('modalAutoFill');
   UIHelper.showToast('Data tersalin — periksa & sesuaikan.', true);
@@ -248,14 +254,46 @@ function eksekusiTambahJadwal() {
   if (!dates.length) { UIHelper.showToast('Pilih tanggal dulu', false); return; }
   var mode = el('selectDateMode').value;
   var tempat = resolveTempat();
+  var idRuang = el('inputIdRuang').value || '';
   var wM = el('inputWaktuMulai').value;
   var wS = el('chkSampaiSelesai').checked ? 'selesai' : el('inputWaktuSelesai').value;
-  var push = function (d) { var fmt = flatpickr.formatDate(d, 'Y-m-d'); jadwalListState.push({ tglMulai: fmt, tglSelesai: fmt, tglKegiatan: fmt, waktuMulai: wM, waktuSelesai: wS, waktuKegiatan: wM + ' - ' + wS, tempatKegiatan: tempat }); };
+  
+  if (idRuang && dates.length > 0) {
+    var firstDate = flatpickr.formatDate(dates[0], 'Y-m-d');
+    Loader.show('Mengecek ketersediaan...');
+    UIHelper.callApi('apiCekBentrokRuang', [{ ruangId: idRuang, tglMulai: firstDate, waktuMulai: wM, waktuSelesai: wS }], function(res) {
+      Loader.hide();
+      if (res && res.bentrok) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Ruangan Sudah Terjadwal',
+          html: '<b>' + UIHelper.escapeHtml(tempat) + '</b> sudah dipakai untuk:<br><i>' + UIHelper.escapeHtml(res.perihal) + '</i><br>jam ' + UIHelper.escapeHtml(res.waktu),
+          showCancelButton: true,
+          confirmButtonText: 'Ya, Tetap Simpan',
+          cancelButtonText: 'Batal'
+        }).then(function(r) {
+          if (r.isConfirmed) pushJadwal(dates, mode, tempat, idRuang, wM, wS);
+        });
+      } else {
+        pushJadwal(dates, mode, tempat, idRuang, wM, wS);
+      }
+    }, function(e) {
+      Loader.hide();
+      pushJadwal(dates, mode, tempat, idRuang, wM, wS);
+    });
+  } else {
+    pushJadwal(dates, mode, tempat, idRuang, wM, wS);
+  }
+}
+function pushJadwal(dates, mode, tempat, idRuang, wM, wS) {
+  var push = function (d) { var fmt = flatpickr.formatDate(d, 'Y-m-d'); jadwalListState.push({ tglMulai: fmt, tglSelesai: fmt, tglKegiatan: fmt, waktuMulai: wM, waktuSelesai: wS, waktuKegiatan: wM + ' - ' + wS, tempatKegiatan: tempat, idRuang: idRuang }); };
   if (mode === 'range' && dates.length === 2) { var cur = new Date(dates[0]); while (cur <= dates[1]) { push(new Date(cur)); cur.setDate(cur.getDate() + 1); } }
   else dates.forEach(push);
   renderJadwalTableChildUI();
   if (flatpickrInstance) flatpickrInstance.clear();
   var t = el('inputTempatKegiatan'); if (t) t.value = '';
+  el('inputIdRuang').value = '';
+  var sug = document.getElementById('ruangSuggestList'); if (sug) sug.style.display = 'none';
 }
 function renderJadwalTableChildUI() {
   var b = el('tabelJadwalBody'); if (!b) return;
@@ -314,7 +352,6 @@ function openModalTambahSurat() {
   initFlatpickr();
   neoShowModal('modalTambahSurat');
 }
-
 function openModalEditSurat(id) {
   var s = rawDataSurat.find(function (x) { return x.idSurat === id; });
   if (!s) return;
@@ -337,7 +374,7 @@ function openModalEditSurat(id) {
     var v = customFieldValues[k];
     if (typeof v === 'string' && v.charAt(0) === '[') { try { repeaterValues[k] = JSON.parse(v); delete customFieldValues[k]; } catch (e) {} }
   });
-  jadwalListState = (s.jadwalList || []).map(function (j) { return { tglMulai: indoToYMD(j.tglMulai), tglSelesai: indoToYMD(j.tglSelesai), tglKegiatan: indoToYMD(j.tglMulai), waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, waktuKegiatan: j.waktuKegiatan, tempatKegiatan: j.tempatKegiatan }; });
+  jadwalListState = (s.jadwalList || []).map(function (j) { return { tglMulai: indoToYMD(j.tglMulai), tglSelesai: indoToYMD(j.tglSelesai), tglKegiatan: indoToYMD(j.tglMulai), waktuMulai: j.waktuMulai, waktuSelesai: j.waktuSelesai, waktuKegiatan: j.waktuKegiatan, tempatKegiatan: j.tempatKegiatan, idRuang: j.idRuang || '' }; });
   renderJadwalTableChildUI();
   el('modalSuratTitle').innerHTML = '<i class="bi bi-pencil-square" style="color:var(--neo-accent);"></i> Edit: ' + UIHelper.escapeHtml(s.agendaNomor);
   wizardStep = 1; goWizardStep(1);
@@ -369,23 +406,60 @@ function submitFormSurat(e) {
   var fileInput = el('inputFileScan');
   if (fileInput.files.length > 0) {
     var reader = new FileReader();
-    reader.onload = function (ev) { payload.fileScan = { base64: ev.target.result, fileName: fileInput.files[0].name, mimeType: fileInput.files[0].type }; sendSaveRequest(payload, btn); };
+    reader.onload = function (ev) { payload.fileScan = { base64: ev.target.result, fileName: fileInput.files[0].name, mimeType: fileInput.files[0].type }; sendSaveRequestSilent(payload, btn); };
     reader.readAsDataURL(fileInput.files[0]);
-  } else sendSaveRequest(payload, btn);
+  } else sendSaveRequestSilent(payload, btn);
 }
 
-function sendSaveRequest(payload, btn) {
-  Loader.show('Menyimpan surat & membuat disposisi...');
-  var finish = function () { window.__savingSurat = false; btn.disabled = false; btn.innerHTML = '<i class="bi bi-save-fill"></i> Simpan'; };
+function sendSaveRequestSilent(payload, btn) {
+  window.__formDirty = false;
+  neoHideModal('modalTambahSurat');
+  Loader.show('Menyimpan surat…');
+  var finish = function () {
+    window.__savingSurat = false;
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-save-fill"></i> Simpan';
+  };
   UIHelper.callApi('apiSimpanSuratMasuk', [{ data: payload, user: currentUser }], function (res) {
     Loader.hide(); finish();
-    window.__formDirty = false;
-    neoHideModal('modalTambahSurat');
-    Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message || 'Data tersimpan.', timer: 2200, showConfirmButton: false }).then(function () { refreshCoreData(); });
+    if (typeof refreshAfterSave === 'function') refreshAfterSave();
+    setTimeout(function(){
+      var idCheck = (res && res.idSurat) || payload.idSurat || '';
+      if (idCheck && typeof ensureDisposisi === 'function') ensureDisposisi(idCheck);
+    }, 4000);
   }, function (err) {
     Loader.hide(); finish();
-    Swal.fire({ icon: 'error', title: 'Gagal!', text: err });
+    Swal.fire({ icon: 'error', title: 'Gagal simpan', text: err, confirmButtonText: 'OK' });
   });
+}
+
+function showSavePill(state) {
+  var p = document.getElementById('lcSavePill');
+  if (!p) {
+    p = document.createElement('div'); p.id = 'lcSavePill';
+    p.style.cssText = 'position:fixed;right:14px;top:14px;z-index:99999;background:var(--neo-surface);box-shadow:var(--neo-soft-raised-lg);border-radius:999px;padding:8px 18px;font-size:.75rem;font-weight:800;color:var(--neo-text-sub);display:flex;gap:8px;align-items:center;transition:opacity .3s;opacity:0;';
+    document.body.appendChild(p);
+  }
+  if (state === 'sync') {
+    p.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.8rem;height:.8rem;"></span> Menyimpan…';
+    p.style.opacity = '1';
+  } else if (state === 'done') {
+    p.innerHTML = '<i class="bi bi-check-circle-fill" style="color:var(--neo-status-active);"></i> Tersimpan';
+    p.style.opacity = '1';
+    setTimeout(function(){ p.style.opacity = '0'; }, 1600);
+  } else {
+    p.innerHTML = '<i class="bi bi-x-circle-fill" style="color:#c53030;"></i> Gagal';
+    p.style.opacity = '1';
+    setTimeout(function(){ p.style.opacity = '0'; }, 2500);
+  }
+}
+
+function ensureDisposisi(idSurat) {
+  if (!idSurat) return;
+  var s = (rawDataSurat || []).find(function(x){ return x.idSurat === idSurat; });
+  if (s && s.urlDisposisi) return;
+  UIHelper.callApi('apiEnsureDisposisi', [{ idSurat: idSurat }], function(r){
+    if (r && r.created && typeof refreshCoreData === 'function') refreshCoreData();
+  }, function(){}, true);
 }
 
 /* ================= DETAIL + STATUS ================= */
@@ -419,22 +493,17 @@ function openModalDetailSurat(id) {
   neoShowModal('modalDetailSurat');
 }
 
-/* ================= PEMBATALAN (dengan alasan) ================= */
-/* ===== Helper: buat timestamp lokal ===== */
+/* ================= PEMBATALAN ================= */
 function _localTimestamp() {
   var n = new Date();
   var pad = function (v) { return ('0' + v).slice(-2); };
   return n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + ' ' +
          pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
 }
-
-/* ===== Helper: actor string ===== */
 function _actorLocal() {
   if (!currentUser) return 'Sistem';
   return (currentUser.fullName || currentUser.username || 'Sistem') + ' (@' + (currentUser.username || '-') + ')';
 }
-
-/* ===== BATALKAN: update state lokal sinkron ===== */
 function openDialogBatalkan(id) {
   neoEnsureCss();
   var ov = document.createElement('div');
@@ -462,71 +531,50 @@ function openDialogBatalkan(id) {
     Loader.show('Menandai dibatalkan...');
     UIHelper.callApi('apiBatalkanSurat', [{ idSurat: id, catatan: alasan, user: currentUser }], function (r) {
       Loader.hide(); Notify.show('success', '', r.message);
-
-      /* ===== UPDATE STATE LOKAL SECARA SINKRON ===== */
       var s = rawDataSurat.find(function (x) { return x.idSurat === id; });
       if (s) s.status = 'BATAL';
       if (!ekspedisiMap[id]) ekspedisiMap[id] = { tahap: '', ts: '', riwayat: [] };
       ekspedisiMap[id].tahap = 'dibatalkan';
       ekspedisiMap[id].ts = _localTimestamp();
       ekspedisiMap[id].riwayat.push({
-        tahap: 'dibatalkan',
-        judul: 'Kegiatan/surat dibatalkan',
-        catatan: alasan,
-        aktor: _actorLocal(),
-        timestamp: _localTimestamp()
+        tahap: 'dibatalkan', judul: 'Kegiatan/surat dibatalkan',
+        catatan: alasan, aktor: _actorLocal(), timestamp: _localTimestamp()
       });
-
-      /* ===== RENDER LANGSUNG DENGAN DATA LOKAL ===== */
       renderEkspedisiInline(ekspedisiMap[id].riwayat);
-
-      /* Background refresh untuk konsistensi */
       refreshCoreData();
     }, function (e) { Loader.hide(); Notify.show('error', '', e); });
   };
   setTimeout(function () { var ta = document.getElementById('batalAlasan'); if (ta) ta.focus(); }, 100);
 }
-
-/* ===== AKTIFKAN: update state lokal sinkron ===== */
 function aksiAktifkan(id) {
   Loader.show('Mengaktifkan kembali...');
   UIHelper.callApi('apiAktifkanSurat', [{ idSurat: id, user: currentUser }], function (r) {
     Loader.hide(); Notify.show('success', '', r.message);
-
-    /* ===== UPDATE STATE LOKAL SECARA SINKRON ===== */
     var s = rawDataSurat.find(function (x) { return x.idSurat === id; });
     if (s) s.status = 'AKTIF';
     if (!ekspedisiMap[id]) ekspedisiMap[id] = { tahap: '', ts: '', riwayat: [] };
     ekspedisiMap[id].tahap = 'diaktifkan_kembali';
     ekspedisiMap[id].ts = _localTimestamp();
     ekspedisiMap[id].riwayat.push({
-      tahap: 'diaktifkan_kembali',
-      judul: 'Surat diaktifkan kembali',
-      catatan: '',
-      aktor: _actorLocal(),
-      timestamp: _localTimestamp()
+      tahap: 'diaktifkan_kembali', judul: 'Surat diaktifkan kembali',
+      catatan: '', aktor: _actorLocal(), timestamp: _localTimestamp()
     });
-
-    /* ===== RENDER LANGSUNG DENGAN DATA LOKAL ===== */
     renderEkspedisiInline(ekspedisiMap[id].riwayat);
-
-    /* Background refresh untuk konsistensi */
     refreshCoreData();
   }, function (e) { Loader.hide(); Notify.show('error', '', e); });
 }
 
-/* ================= HAPUS ================= */
 function konfirmasiHapusSurat(id) {
   Swal.fire({ title: 'Hapus Surat?', text: 'Data tidak dapat dikembalikan.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus', cancelButtonText: 'Batal' }).then(function (r) {
     if (r.isConfirmed) {
-      Loader.show('Menghapus surat...');
+      rawDataSurat = (rawDataSurat || []).filter(function (x) { return x.idSurat !== id; });
+      try { renderSuratTable(rawDataSurat); renderDashboard(rawDataSurat); renderSidebarAgenda(); renderConventionalCalendar(); } catch (e) {}
+      Swal.fire({ icon: 'success', title: 'Terhapus!', timer: 1200, showConfirmButton: false });
       UIHelper.callApi('apiHapusSurat', [{ id: id }], function () {
-        Loader.hide();
-        Swal.fire({ icon: 'success', title: 'Terhapus!', timer: 1500, showConfirmButton: false });
-        refreshCoreData();
+        if (typeof refreshCoreData === 'function') refreshCoreData();
       }, function (err) {
-        Loader.hide();
         Swal.fire({ icon: 'error', title: 'Error!', text: err });
+        if (typeof refreshCoreData === 'function') refreshCoreData();
       });
     }
   });
@@ -552,10 +600,69 @@ function filterDashboard() {
   var q = el('dashSearchInput').value.toLowerCase();
   renderDashboard(rawDataSurat.filter(function (s) { return (s.agendaNomor || '').toLowerCase().indexOf(q) !== -1 || (s.perihal || '').toLowerCase().indexOf(q) !== -1; }));
 }
+
+/* ================= PICKER RUANG SPACECORE (dengan force reload) ================= */
+function openPickerRuangSpaceCore() {
+  console.log('[Picker Ruang] Cek data, total:', daftarRuangSpaceCore.length);
+  
+  if (!daftarRuangSpaceCore || !daftarRuangSpaceCore.length) {
+    UIHelper.showToast('Memuat data ruangan...', true);
+    Loader.show('Memuat ruangan SpaceCore...');
+    
+    UIHelper.callApi('apiGetDaftarRuangSpaceCore', [], function(d) {
+      Loader.hide();
+      var arr = [];
+      if (Array.isArray(d)) {
+        arr = d;
+      } else if (d && Array.isArray(d.data)) {
+        arr = d.data;
+      } else if (d && d.success && Array.isArray(d.data)) {
+        arr = d.data;
+      }
+      
+      daftarRuangSpaceCore = arr;
+      console.log('[Picker Ruang] Reload selesai, total:', daftarRuangSpaceCore.length);
+      
+      if (daftarRuangSpaceCore.length) {
+        openPickerRuangSpaceCore();
+      } else {
+        UIHelper.showToast('Tidak ada ruangan aktif di SpaceCore.', false);
+      }
+    }, function(e) {
+      Loader.hide();
+      console.error('[Picker Ruang] Error:', e);
+      UIHelper.showToast('Gagal memuat ruangan: ' + (e.message || e), false);
+    });
+    return;
+  }
+  
+  pickerItems = daftarRuangSpaceCore.map(function(r) {
+    return {
+      nama: r.nama,
+      desc: r.kode + (r.kategori_ruangan ? ' · ' + r.kategori_ruangan : ''),
+      icon: r.jenis === 'area_umum' ? 'bi-building' : 'bi-door-open',
+      _id: r.id,
+      _namaAsli: r.nama
+    };
+  });
+  
+  console.log('[Picker Ruang] Render', pickerItems.length, 'items');
+  
+  pickerCb = function(item) {
+    el('inputTempatKegiatan').value = item._namaAsli;
+    el('inputIdRuang').value = item._id;
+    var sug = document.getElementById('ruangSuggestList'); if (sug) sug.style.display = 'none';
+  };
+  
+  el('pickerTitle').innerText = 'Pilih Ruangan (SpaceCore)';
+  el('pickerSearch').value = '';
+  renderPicker();
+  neoShowModal('modalCardPicker');
+}
 </script>
 
 <script>
-/* ================= EKSPEDISI UI (INLINE + STATUS) ================= */
+/* ================= EKSPEDISI UI ================= */
 var currentEkspedisiId = null;
 
 function openEkspedisi(id) {
@@ -569,29 +676,21 @@ function openEkspedisi(id) {
     if (d) { d.classList.remove('d-none'); d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     Loader.hide();
   };
-  UIHelper.callApi('apiGetEkspedisi', [{ idSurat: id }], function (r) {
-    tampil(r);
-  }, function (err) {
-    tampil((ekspedisiMap[id] || {}).riwayat || []);
-    UIHelper.showToast('Memakai riwayat lokal: ' + err, false);
-  });
+  UIHelper.callApi('apiGetEkspedisi', [{ idSurat: id }], function (r) { tampil(r); },
+    function (err) { tampil((ekspedisiMap[id] || {}).riwayat || []); UIHelper.showToast('Memakai riwayat lokal: ' + err, false); });
 }
-
 function tutupEkspedisi() {
   var l = document.getElementById('ekspedisiList'), t = document.getElementById('ekspedisiToolbar'), d = document.getElementById('ekspedisiDetail');
   if (d) d.classList.add('d-none');
   if (l) l.classList.remove('d-none');
   if (t) t.classList.remove('d-none');
 }
-
 function renderEkspedisiInline(riwayat) {
   var s = rawDataSurat.find(function (x) { return x.idSurat === currentEkspedisiId; });
   var tEl = document.getElementById('ekspedisiTitle');
   if (tEl) tEl.innerHTML = '<i class="bi bi-box-seam" style="color:var(--neo-accent);"></i> Ekspedisi: ' + UIHelper.escapeHtml(s ? s.agendaNomor + ' — ' + s.perihal : currentEkspedisiId);
 
   var done = {}; (riwayat || []).forEach(function (r) { done[r.tahap] = r; });
-
-  /* Status batal dibaca LANGSUNG dari riwayat (tidak menunggu reload data) */
   var batalNow = (s && s.status === 'BATAL') || (!!done['dibatalkan'] && !done['diaktifkan_kembali']);
 
   var tl = document.getElementById('ekspedisiTimeline');
@@ -625,31 +724,34 @@ function renderEkspedisiInline(riwayat) {
         '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluY" value="Y"><label class="form-check-label" for="kepPerluY" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-status-active);"><i class="bi bi-check-circle-fill me-1"></i> Ya, perlu balasan</label></div></div>' +
         '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluT" value="T"><label class="form-check-label" for="kepPerluT" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-text-sub);"><i class="bi bi-x-circle me-1"></i> Tidak perlu</label></div></div>' +
         '</div>' +
-        '<div id="kepBalasanFields" class="row g-2 mt-2 d-none">' +
-        '<div class="col-md-6"><input id="kepJenis" class="form-control" placeholder="Jenis balasan (mis. Surat Jalan)"></div>' +
-        '<div class="col-md-6"><input type="date" id="kepTenggat" class="form-control"></div>' +
-        '</div>' +
         '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="submitKeputusan()"><i class="bi bi-save"></i> Simpan Keputusan</button></div></div>';
     }
     if (done['keputusan'] && !done['balasan'] && !done['selesai_tanpa_balasan']) {
-      act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
+      var kepRiwayat = done['keputusan'];
+      var perluBalasan = false;
+      if (kepRiwayat.perluBalasan === true || kepRiwayat.perluBalasan === 'Y' || kepRiwayat.perluBalasan === 'Ya') perluBalasan = true;
+      if (!perluBalasan && kepRiwayat.catatan) {
+        var catatanLower = String(kepRiwayat.catatan).toLowerCase();
+        if (catatanLower.indexOf('perlu balasan') !== -1 || catatanLower.indexOf('perlu surat balasan') !== -1 ||
+            (catatanLower.indexOf('izin') !== -1 && catatanLower.indexOf('proses') !== -1)) perluBalasan = true;
+      }
+      if (perluBalasan) {
+        act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="openModalSuratKeluar(\'BALASAN\', \'' + currentEkspedisiId + '\')"><i class="bi bi-send-plus"></i> Buat Surat Balasan</button>';
+      } else {
+        act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
+      }
     }
     act += '<div class="text-end mt-2"><button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-status-inactive);" onclick="openDialogBatalkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-x-octagon"></i> Batalkan Kegiatan</button></div>';
   }
   var aEl = document.getElementById('ekspedisiAction');
   if (aEl) aEl.innerHTML = act;
-
   setTimeout(function () {
     var radios = document.querySelectorAll('input[name="kepPerluBalasan"]');
-    var box = document.getElementById('kepBalasanFields');
-    if (box) radios.forEach(function (r) {
-      r.addEventListener('change', function () {
-        box.classList.toggle('d-none', !(r.value === 'Y' && r.checked));
-      });
+    radios.forEach(function (r) {
+      r.addEventListener('change', function () {});
     });
   }, 50);
 }
-
 function _refreshEkspedisi() {
   refreshCoreData();
   setTimeout(function () {
@@ -657,7 +759,6 @@ function _refreshEkspedisi() {
     if (detailOpen && currentEkspedisiId) openEkspedisi(currentEkspedisiId);
   }, 400);
 }
-
 function aksiTercetak() {
   Loader.show('Menandai tercetak...');
   UIHelper.callApi('apiTandaiTercetak', [{ idSurat: currentEkspedisiId, user: currentUser }], function (r) { Loader.hide(); UIHelper.showToast(r.message, true); _refreshEkspedisi(); }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
@@ -666,18 +767,15 @@ function submitKeputusan() {
   var radios = document.querySelectorAll('input[name="kepPerluBalasan"]');
   var selected = null;
   radios.forEach(function (r) { if (r.checked) selected = r.value; });
-  if (!selected) {
-    Notify.show('warning', '', 'Pilih dulu: apakah perlu balasan atau tidak?');
-    return;
-  }
+  if (!selected) { Notify.show('warning', '', 'Pilih dulu: apakah perlu balasan atau tidak?'); return; }
   var perluBalasan = selected === 'Y';
   Loader.show('Menyimpan keputusan...');
   UIHelper.callApi('apiCatatKeputusanDisposisi', [{
     idSurat: currentEkspedisiId,
     keputusan: (document.getElementById('kepText') || {}).value || '',
     perluBalasan: perluBalasan,
-    jenisBalasan: perluBalasan ? ((document.getElementById('kepJenis') || {}).value || '') : '',
-    tenggat: perluBalasan ? ((document.getElementById('kepTenggat') || {}).value || '') : '',
+    jenisBalasan: '',
+    tenggat: '',
     user: currentUser
   }], function (r) { Loader.hide(); UIHelper.showToast(r.message, true); _refreshEkspedisi(); }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
 }
@@ -688,7 +786,6 @@ function aksiDiterima() {
 
 /* ================= MANAJEMEN KATEGORI UI ================= */
 var currentKatEdit = '';
-
 function openManajemenKategori() {
   var mEl = document.getElementById('modalKategori');
   if (!mEl) { UIHelper.showToast('Modal manajemen kategori tidak ditemukan di halaman ini.', false); return; }
@@ -696,13 +793,11 @@ function openManajemenKategori() {
   renderKategoriList();
   neoShowModal(mEl);
 }
-
 function renderKategoriList() {
   document.getElementById('katListContainer').innerHTML = kategoriList.map(function (k) {
     return '<div class="autofill-item" onclick="editKategori(\'' + k.id + '\')"><b style="font-size:.8rem;">' + UIHelper.escapeHtml(k.nama) + '</b><div style="font-size:.68rem; color:var(--neo-text-sub);">→ ' + UIHelper.escapeHtml(k.tujuanDisposisi || '-') + '</div></div>';
   }).join('') || '<div style="color:var(--neo-text-muted); font-size:.8rem;">Belum ada kategori.</div>';
 }
-
 function katJadwalChange() {
   var on = document.getElementById('katPakaiJadwal').checked;
   document.getElementById('katJadwalOpts').classList.toggle('d-none', !on);
@@ -713,7 +808,6 @@ function katModeTempatChange() {
   var v = document.getElementById('katModeTempat').value;
   document.getElementById('wrapKatModeField').classList.toggle('d-none', !(on && v === 'FIELD'));
 }
-
 function refreshKatFieldOptions(selectedKey) {
   var sel = document.getElementById('katModeField');
   sel.innerHTML = '<option value="">— pilih field —</option>';
@@ -727,7 +821,6 @@ function refreshKatFieldOptions(selectedKey) {
     if (selectedKey) sel.value = selectedKey;
   }, function () {}, true);
 }
-
 function editKategori(id) {
   currentKatEdit = id;
   window.__katDirty = false;
@@ -740,22 +833,18 @@ function editKategori(id) {
   document.getElementById('katLabel2').value = k ? (k.labelTahap2 || '') : '';
   document.getElementById('katLabel3').value = k ? (k.labelTahap3 || '') : '';
   document.getElementById('katPakaiJadwal').checked = !!(k && k.pakaiJadwal);
-
   var mode = k ? (k.modeTempat || 'INPUT') : 'INPUT';
   var modeKey = '';
   if (mode.indexOf('FIELD:') === 0) { modeKey = mode.slice(6); mode = 'FIELD'; }
   document.getElementById('katModeTempat').value = mode;
   katJadwalChange();
   refreshKatFieldOptions(modeKey);
-
   var c = k || {};
   var ft = document.getElementById('fTahap');
   ft.options[0].text = '2 · ' + (c.labelTahap2 || 'Kegiatan');
   ft.options[1].text = '3 · ' + (c.labelTahap3 || 'Detail');
-
   renderFieldList(id);
 }
-
 function simpanKategoriForm() {
   var pakai = document.getElementById('katPakaiJadwal').checked;
   var modeSel = document.getElementById('katModeTempat').value;
@@ -765,9 +854,7 @@ function simpanKategoriForm() {
       var fk = document.getElementById('katModeField').value;
       if (!fk) { UIHelper.showToast('Pilih field sumber tempat dulu.', false); return; }
       modeTempat = 'FIELD:' + fk;
-    } else {
-      modeTempat = modeSel;
-    }
+    } else { modeTempat = modeSel; }
   }
   Loader.show('Menyimpan kategori...');
   UIHelper.callApi('apiSimpanKategori', [{
@@ -781,24 +868,24 @@ function simpanKategoriForm() {
     pakaiJadwal: pakai,
     modeTempat: modeTempat
   }], function (r) {
-    Loader.hide();
-    window.__katDirty = false;
+    Loader.hide(); window.__katDirty = false;
     UIHelper.showToast(r.message, true);
     refreshMasterData();
     setTimeout(function () { renderKategoriList(); }, 400);
   }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
 }
-
 function renderFieldList(katId) {
   var box = document.getElementById('fieldListContainer');
   if (!katId) { box.innerHTML = '<div style="color:var(--neo-text-muted); font-size:.78rem;">Pilih/simpan kategori dulu untuk mengelola field.</div>'; return; }
   UIHelper.callApi('apiGetFormSchema', [{ idKategori: katId }], function (fields) {
     box.innerHTML = (fields || []).map(function (f) {
-      return '<div class="autofill-item d-flex justify-content-between align-items-center"><span style="font-size:.75rem;"><b>' + UIHelper.escapeHtml(f.label) + '</b> · ' + f.tipe + ' · tahap ' + f.tahap + (f.opsional ? ' · opsional' : '') + '</span>' +
-        '<button type="button" class="schedule-remove-btn" onclick="hapusFieldBtn(\'' + UIHelper.escapeHtml(f.fieldKey) + '\')"><i class="bi bi-x"></i></button></div>';
+      return '<div class="autofill-item d-flex justify-content-between align-items-center" data-field-id="' + UIHelper.escapeHtml(f.idField || f.fieldKey) + '">' +
+        '<span style="font-size:.75rem;"><b>' + UIHelper.escapeHtml(f.label) + '</b> · ' + f.tipe + ' · tahap ' + f.tahap + (f.opsional ? ' · opsional' : '') + '</span>' +
+        '<button type="button" class="schedule-remove-btn" onclick="hapusFieldBtn(\'' + UIHelper.escapeHtml(f.idField || f.fieldKey) + '\')"><i class="bi bi-x"></i></button></div>';
     }).join('') || '<div style="color:var(--neo-text-muted); font-size:.78rem;">Belum ada field.</div>';
   });
 }
+
 
 function simpanFieldForm() {
   if (!currentKatEdit) { UIHelper.showToast('Pilih kategori dulu', false); return; }
@@ -821,13 +908,47 @@ function simpanFieldForm() {
     refreshKatFieldOptions(document.getElementById('katModeField').value);
   }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
 }
-
+/* Konfirmasi INLINE di dalam baris — tidak pakai overlay, tidak bisa tertutup */
 function hapusFieldBtn(idField) {
-  Swal.fire({ title: 'Nonaktifkan field?', icon: 'question', showCancelButton: true, confirmButtonText: 'Ya', cancelButtonText: 'Batal' }).then(function (r) {
-    if (r.isConfirmed) {
-      Loader.show('Menonaktifkan field...');
-      UIHelper.callApi('apiHapusField', [{ idField: idField }], function (res) { Loader.hide(); UIHelper.showToast(res.message, true); renderFieldList(currentKatEdit); refreshKatFieldOptions(document.getElementById('katModeField').value); }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
+  var row = document.querySelector('#fieldListContainer [data-field-id="' + idField + '"]');
+  if (!row || row.getAttribute('data-confirming') === '1') return;
+  
+  row.setAttribute('data-confirming', '1');
+  row.__restore = row.innerHTML;
+  
+  var esc = UIHelper.escapeHtml;
+  row.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;">' +
+      '<span style="font-size:.72rem;font-weight:700;color:var(--neo-status-inactive);"><i class="bi bi-exclamation-triangle-fill me-1"></i>Hapus field ini?</span>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<button type="button" onclick="konfirmasiHapusField(\'' + esc(idField) + '\')" style="border:none;border-radius:999px;padding:5px 12px;font-size:.68rem;font-weight:800;cursor:pointer;background:rgba(245,101,101,.15);color:#c53030;box-shadow:var(--neo-soft-flat);"><i class="bi bi-check-lg"></i> Ya</button>' +
+        '<button type="button" onclick="batalHapusField(\'' + esc(idField) + '\')" style="border:none;border-radius:999px;padding:5px 12px;font-size:.68rem;font-weight:700;cursor:pointer;background:var(--neo-surface);color:var(--neo-text-sub);box-shadow:var(--neo-soft-flat);"><i class="bi bi-x"></i> Batal</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function batalHapusField(idField) {
+  var row = document.querySelector('#fieldListContainer [data-field-id="' + idField + '"]');
+  if (row && row.__restore) {
+    row.innerHTML = row.__restore;
+    row.removeAttribute('data-confirming');
+  }
+}
+
+function konfirmasiHapusField(idField) {
+  Loader.show('Menghapus field...');
+  UIHelper.callApi('apiHapusField', [{ idField: idField, idKategori: currentKatEdit }], function (res) {
+    Loader.hide();
+    if (res && res.success) {
+      UIHelper.showToast(res.message, true);
+      renderFieldList(currentKatEdit);
+      refreshKatFieldOptions(document.getElementById('katModeField').value);
+    } else {
+      UIHelper.showToast(res.message || 'Gagal menghapus.', false);
     }
+  }, function (e) {
+    Loader.hide();
+    UIHelper.showToast('Error: ' + e, false);
   });
 }
 </script>

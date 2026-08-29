@@ -1,57 +1,178 @@
-<section id="sec-kalendar">
+<section id="sec-kalendar" style="display:flex; flex-direction:column; height:100%; min-height:0; gap:14px;">
 
-  <!-- ============ TOOLBAR: NAV + SEARCH ============ -->
-  <div class="calendar-header-row">
-    <div class="d-flex align-items-center gap-3">
-      <button class="calendar-nav-btn" onclick="switchPage('page-dashboard')" title="Kembali ke Dashboard">
-        <i class="bi bi-arrow-left"></i>
-      </button>
-      <h2 class="calendar-month-title" id="calendarMonthYearTitle">Agustus 2026</h2>
+  <!-- TOOLBAR -->
+  <div class="cal-toolbar">
+    <div class="cal-toolbar-row">
+      <div class="cal-cluster">
+        <button class="cal-nav-btn" onclick="prevMonth()" title="Bulan Sebelumnya"><i class="bi bi-chevron-left"></i></button>
+        <h2 class="cal-month-title" id="calendarMonthYearTitle">Agustus 2026</h2>
+        <button class="cal-nav-btn" onclick="nextMonth()" title="Bulan Berikutnya"><i class="bi bi-chevron-right"></i></button>
+        <span class="cal-cluster-sep"></span>
+        <button class="cal-nav-btn cal-today-btn" onclick="goToday()" title="Kembali ke Hari Ini"><i class="bi bi-crosshair"></i></button>
+      </div>
+      <div class="cal-cluster">
+        <button type="button" class="cal-add-btn" onclick="openModalAgenda('')" title="Kegiatan tanpa surat masuk"><i class="bi bi-plus-lg"></i> Kegiatan</button>
+        <button type="button" class="cal-icon-btn" onclick="openModalKelolaLibur()" title="Kelola hari libur"><i class="bi bi-calendar2-x"></i></button>
+        <span class="cal-cluster-sep"></span>
+        <select id="calTempatFilter" class="cal-flat-select" onchange="window.__calTempatFilter=this.value; renderConventionalCalendar();">
+          <option value="">Semua Tempat</option>
+        </select>
+        <span class="cal-cluster-sep"></span>
+        <i class="bi bi-search cal-search-ico"></i>
+        <input type="text" id="calendarSearchInput" class="cal-flat-input" placeholder="Cari..." onkeyup="renderConventionalCalendar()">
+      </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
-      <input type="text" id="calendarSearchInput" class="search-input-clean" style="width: 220px !important;" placeholder="Cari perihal / tempat..." onkeyup="renderConventionalCalendar()">
-      <button class="calendar-nav-btn" onclick="prevMonth()" title="Bulan Sebelumnya">
-        <i class="bi bi-chevron-left"></i>
-      </button>
-      <button class="calendar-nav-btn" onclick="nextMonth()" title="Bulan Berikutnya">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-      <button class="calendar-nav-btn" onclick="goToToday()" title="Hari Ini" style="color: var(--neo-accent);">
-        <i class="bi bi-crosshair"></i>
-      </button>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><span class="cal-leg-dot today"></span> Hari Ini</div>
+      <div class="cal-legend-item"><span class="cal-leg-dot kegiatan"></span> Kegiatan</div>
+      <div class="cal-legend-item"><span class="cal-leg-dot agenda"></span> Mandiri</div>
+      <div class="cal-legend-item"><span class="cal-leg-dot batal"></span> Dibatalkan</div>
+      <div class="cal-legend-item"><span class="cal-leg-dot holiday"></span> 🚩 Libur</div>
+      <div class="cal-legend-item"><span class="cal-leg-dot weekend"></span> Akhir Pekan</div>
     </div>
   </div>
 
-  <!-- ============ DAY HEADERS ============ -->
-  <div class="calendar-grid" style="margin-bottom: 10px;">
-    <div class="calendar-day-header">Sen</div>
-    <div class="calendar-day-header">Sel</div>
-    <div class="calendar-day-header">Rab</div>
-    <div class="calendar-day-header">Kam</div>
-    <div class="calendar-day-header">Jum</div>
-    <div class="calendar-day-header">Sab</div>
-    <div class="calendar-day-header" style="color: var(--neo-status-inactive);">Min</div>
+  <!-- DAY HEADERS -->
+  <div class="cal-day-headers">
+    <div class="cal-day-header">Sen</div>
+    <div class="cal-day-header">Sel</div>
+    <div class="cal-day-header">Rab</div>
+    <div class="cal-day-header">Kam</div>
+    <div class="cal-day-header">Jum</div>
+    <div class="cal-day-header cal-day-sat">Sab</div>
+    <div class="cal-day-header cal-day-sun">Min</div>
   </div>
 
-  <!-- ============ CALENDAR GRID ============ -->
-  <div id="calendarGridDays" class="calendar-grid" style="max-height: calc(100vh - 320px); overflow-y: auto; padding-right: 4px;">
-    <!-- Rendered by JS_Render -->
-  </div>
-
-  <!-- ============ LEGEND ============ -->
-  <div class="d-flex align-items-center gap-3" style="margin-top: 1rem; flex-wrap: wrap;">
-    <div class="d-flex align-items-center gap-2" style="font-size: 0.7rem; font-weight: 700; color: var(--neo-text-sub);">
-      <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--neo-accent); box-shadow: 0 0 8px rgba(102,126,234,0.6);"></span>
-      Hari Ini
-    </div>
-    <div class="d-flex align-items-center gap-2" style="font-size: 0.7rem; font-weight: 700; color: var(--neo-text-sub);">
-      <span style="width: 14px; height: 10px; border-radius: 4px; background: var(--neo-accent-soft); border: 1px solid rgba(102,126,234,0.3);"></span>
-      Ada Kegiatan
-    </div>
-    <div class="d-flex align-items-center gap-2" style="font-size: 0.7rem; font-weight: 700; color: var(--neo-text-sub);">
-      <span style="width: 14px; height: 10px; border-radius: 4px; background: transparent; border: 1px dashed rgba(163,177,198,0.5);"></span>
-      Bulan Lain
-    </div>
+  <!-- CALENDAR WRAPPER -->
+  <div class="cal-aurora-wrap">
+    <div id="calendarGridDays" class="cal-grid"></div>
   </div>
 
 </section>
+
+<style>
+.page-content-scroll:has(#page-kalendar.active){ overflow:hidden !important; }
+#page-kalendar{ height:100%; display:flex; flex-direction:column; }
+
+@property --beam-angle { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+
+.cal-toolbar { background:var(--neo-surface); border-radius:20px; padding:12px 16px; box-shadow:var(--neo-soft-raised); display:flex; flex-direction:column; gap:10px; flex:0 0 auto; }
+.cal-toolbar-row { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.cal-cluster { display:flex; align-items:center; gap:2px; background:var(--neo-surface); border-radius:999px; padding:5px 8px; box-shadow:var(--neo-soft-inset); }
+.cal-nav-btn { width:32px; height:32px; border-radius:50%; border:none; background:transparent; color:var(--neo-text-heading); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; font-size:0.9rem; }
+.cal-nav-btn:hover { background:rgba(102,126,234,0.10); color:var(--neo-accent); }
+.cal-today-btn { color:var(--neo-accent) !important; }
+.cal-month-title { font-size:1.05rem; font-weight:800; color:var(--neo-text-heading); margin:0 6px; min-width:150px; text-align:center; }
+.cal-cluster-sep { width:1px; height:20px; background:rgba(163,177,198,0.35); margin:0 6px; flex-shrink:0; }
+.cal-add-btn { border:none; background:var(--neo-accent); color:#fff; font-weight:800; font-size:0.7rem; padding:7px 14px; border-radius:999px; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 3px 10px rgba(102,126,234,0.35); margin-right:4px; }
+.cal-icon-btn { border:none; background:transparent; color:var(--neo-text-sub); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:0.85rem; }
+.cal-icon-btn:hover { color:var(--neo-accent); background:rgba(102,126,234,0.10); }
+.cal-flat-select { border:none; background:transparent; font-size:0.72rem; font-weight:700; color:var(--neo-text-sub); outline:none; max-width:140px; cursor:pointer; }
+.cal-flat-input { border:none; background:transparent; outline:none; font-size:0.75rem; font-weight:600; color:var(--neo-text-heading); width:110px; }
+.cal-search-ico { color:var(--neo-text-muted); font-size:0.8rem; }
+
+.cal-legend { display:flex; gap:16px; flex-wrap:wrap; padding-top:2px; }
+.cal-legend-item { font-size:0.7rem; font-weight:700; color:var(--neo-text-sub); display:flex; align-items:center; gap:6px; }
+.cal-leg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.cal-leg-dot.today { background:var(--neo-surface); box-shadow:0 0 0 2px rgba(56,178,172,0.6), 0 0 8px rgba(102,126,234,0.5); }
+.cal-leg-dot.kegiatan { background:var(--neo-surface); border-left:3px solid var(--neo-accent); border-radius:3px; box-shadow:var(--neo-soft-inset); }
+.cal-leg-dot.agenda { background:var(--neo-surface); border-left:3px solid rgba(56,178,172,0.85); border-radius:3px; box-shadow:var(--neo-soft-inset); }
+.cal-leg-dot.batal { background:rgba(245,101,101,0.5); box-shadow:0 0 6px rgba(245,101,101,0.5); }
+.cal-leg-dot.holiday { background:rgba(245,158,11,0.6); box-shadow:0 0 6px rgba(245,158,11,0.5); }
+.cal-leg-dot.weekend { background:rgba(245,101,101,0.55); box-shadow:0 0 6px rgba(245,101,101,0.4); }
+
+.cal-day-headers { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; flex:0 0 auto; }
+.cal-day-header { text-align:center; font-size:0.68rem; font-weight:800; color:var(--neo-text-sub); text-transform:uppercase; letter-spacing:0.8px; padding:8px 0; background:var(--neo-surface); border-radius:12px; box-shadow:var(--neo-soft-flat); }
+.cal-day-header.cal-day-sat { color:#c53030; }
+.cal-day-header.cal-day-sun { color:#c53030; }
+
+.cal-aurora-wrap { position:relative; flex:1 1 auto; min-height:0; border-radius:24px; overflow:hidden; background:var(--neo-surface); box-shadow:var(--neo-soft-raised-lg); padding:14px; }
+.cal-aurora-wrap::before {
+  content:'';
+  position:absolute; inset:0; border-radius:24px; padding:2px;
+  background:conic-gradient(from var(--beam-angle),
+    transparent 0deg, transparent 200deg,
+    rgba(56,178,172,0) 210deg, rgba(56,178,172,0.55) 250deg,
+    rgba(102,126,234,0.85) 300deg, rgba(167,139,250,0.95) 330deg, transparent 345deg);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite:exclude;
+  animation:beamSpin 8s linear infinite;
+  pointer-events:none; z-index:2;
+}
+.cal-aurora-wrap::after {
+  content:'';
+  position:absolute; inset:0; border-radius:24px; padding:3px;
+  background:conic-gradient(from var(--beam-angle),
+    transparent 0deg, transparent 200deg,
+    rgba(56,178,172,0) 210deg, rgba(56,178,172,0.5) 250deg,
+    rgba(102,126,234,0.8) 300deg, rgba(167,139,250,0.9) 330deg, transparent 345deg);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite:exclude;
+  animation:beamSpin 8s linear infinite;
+  filter:blur(6px);
+  opacity:0.6;
+  pointer-events:none; z-index:2;
+}
+@keyframes beamSpin { to { --beam-angle:360deg; } }
+
+.cal-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:128px; gap:8px; height:100%; overflow-y:auto; align-content:start; padding-right:4px; }
+.cal-grid::-webkit-scrollbar { width:6px; }
+.cal-grid::-webkit-scrollbar-thumb { background:rgba(163,177,198,0.4); border-radius:10px; }
+
+.calendar-cell { background:var(--neo-surface); border-radius:14px; box-shadow:var(--neo-soft-flat); padding:8px; display:flex; flex-direction:column; gap:4px; transition:all 0.25s ease; position:relative; overflow:hidden; cursor:pointer; }
+.calendar-cell:hover { box-shadow:var(--neo-soft-raised); transform:translateY(-2px); }
+.calendar-cell.other-month { opacity:0.45; background:rgba(255,255,255,0.3); box-shadow:var(--neo-soft-inset); cursor:default; }
+.calendar-cell.other-month:hover { opacity:0.7; transform:none; }
+
+/* Akhir pekan (Sabtu & Minggu): merah, tetap merah meski ada kegiatan */
+.calendar-cell.weekend,
+.calendar-cell.sunday { background:rgba(245,101,101,0.07); }
+.calendar-cell.weekend .calendar-date-num,
+.calendar-cell.sunday .calendar-date-num { color:#c53030; font-weight:800; }
+/* Hari ini di akhir pekan: tetap merah, tapi pertahankan ring neon */
+.calendar-cell.weekend.today .calendar-date-num,
+.calendar-cell.sunday.today .calendar-date-num { color:#c53030; }
+
+.calendar-date-num { font-size:0.88rem; font-weight:800; color:var(--neo-text-heading); margin-bottom:2px; }
+.calendar-cell.other-month .calendar-date-num { color:var(--neo-text-muted); font-weight:600; }
+
+.calendar-cell.today { background:var(--neo-surface); animation:todayNeon 2.8s ease-in-out infinite; }
+.calendar-cell.today .calendar-date-num {
+  width:26px; height:26px; border-radius:50%;
+  background:var(--neo-surface); color:var(--neo-accent);
+  box-shadow:var(--neo-soft-inset);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.78rem; margin-bottom:4px;
+}
+@keyframes todayNeon {
+  0%,100% { box-shadow:var(--neo-soft-raised), 0 0 0 2px rgba(56,178,172,0.5), 0 0 10px rgba(102,126,234,0.25); }
+  50% { box-shadow:var(--neo-soft-raised), 0 0 0 3px rgba(102,126,234,0.6), 0 0 22px rgba(56,178,172,0.45); }
+}
+
+.cal-count-badge { position:absolute; top:6px; right:6px; min-width:18px; height:18px; border-radius:99px; background:var(--neo-accent); color:#fff; font-size:0.6rem; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 5px; box-shadow:0 2px 6px rgba(102,126,234,.4); z-index:1; }
+
+.cal-events { display:flex; flex-direction:column; gap:3px; flex:1; min-height:0; overflow-y:auto; }
+.cal-events::-webkit-scrollbar { width:3px; }
+.cal-events::-webkit-scrollbar-thumb { background:rgba(163,177,198,0.3); border-radius:10px; }
+
+.calendar-event-chip {
+  display:flex; align-items:center; gap:5px;
+  background:var(--neo-surface);
+  border-radius:8px; padding:3px 8px;
+  font-size:0.62rem; font-weight:700;
+  color:var(--neo-text-heading) !important;
+  cursor:pointer; transition:all 0.15s;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  border-left:3px solid var(--neo-accent);
+  box-shadow:var(--neo-soft-inset);
+}
+.calendar-event-chip:hover { box-shadow:var(--neo-soft-flat); transform:translateX(2px); }
+.calendar-event-chip.calendar-event-batal { border-left-color:rgba(245,101,101,0.7); color:#c53030 !important; text-decoration:line-through; }
+.calendar-event-chip.calendar-event-holiday { border-left-color:rgba(245,158,11,0.8); background:rgba(245,158,11,0.10); color:#92400e !important; }
+.calendar-event-chip.calendar-event-agenda { border-left-color:rgba(56,178,172,0.85); }
+</style>

@@ -2,6 +2,7 @@
 /**
  * ============================================================================
  * LETTERCORE - API CALLS (Performance: paralel, cache, enum lokal)
+ * PATCH: lindungi IIFE __skFreshWired dengan _whenReady + try/catch
  * ============================================================================
  */
 
@@ -24,7 +25,14 @@ function loadAllData() {
     if (typeof neoProgress === 'function') neoProgress(false);
   }, true);
 
-  /* Master menyusul di latar belakang (cache server) */
+  UIHelper.callApi('apiGetDaftarSuratKeluar', [], function (d) {
+    rawDataSuratKeluar = Array.isArray(d) ? d : [];
+    if (typeof renderSuratKeluarList === 'function') {
+      var pg = document.getElementById('page-surat-keluar');
+      if (pg && pg.classList.contains('active')) renderSuratKeluarList();
+    }
+  }, function () { rawDataSuratKeluar = []; }, true);
+
   UIHelper.callApi('apiLoadMaster', [], function (m) {
     masterOrang = m.masterOrang || [];
     masterAset = {};
@@ -32,7 +40,7 @@ function loadAllData() {
   }, function () {}, true);
 }
 
-/* ========== REFRESH CORE: setelah aksi (ringan, tanpa loader) ========== */
+/* ========== REFRESH CORE ========== */
 function refreshCoreData() {
   if (typeof neoProgress === 'function') neoProgress(true);
   UIHelper.callApi('apiLoadCore', [], function (core) {
@@ -47,9 +55,17 @@ function refreshCoreData() {
     console.error('[refreshCoreData] Gagal:', err);
     if (typeof neoProgress === 'function') neoProgress(false);
   }, true);
+
+  UIHelper.callApi('apiGetDaftarSuratKeluar', [], function (d) {
+    rawDataSuratKeluar = Array.isArray(d) ? d : [];
+    if (typeof renderSuratKeluarList === 'function') {
+      var pg = document.getElementById('page-surat-keluar');
+      if (pg && pg.classList.contains('active')) renderSuratKeluarList();
+    }
+  }, function () {}, true);
 }
 
-/* ========== REFRESH MASTER (setelah simpan kategori/field) ========== */
+/* ========== REFRESH MASTER ========== */
 function refreshMasterData() {
   UIHelper.callApi('apiGetKategoriList', [], function (d) {
     kategoriList = d || [];
@@ -57,7 +73,7 @@ function refreshMasterData() {
   }, function () {}, true);
 }
 
-/* ========== ENUM LOKAL: dihitung dari data yang sudah ada (0 panggilan) ========== */
+/* ========== ENUM LOKAL ========== */
 function deriveEnumLists() {
   var uniq = function (key) {
     var s = {};
@@ -93,6 +109,10 @@ function refreshAllUI() {
   if (typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
   if (typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
   if (typeof renderSidebarAgenda === 'function') renderSidebarAgenda();
+  if (typeof renderSuratKeluarList === 'function') {
+    var sk = document.getElementById('page-surat-keluar');
+    if (sk && sk.classList.contains('active')) renderSuratKeluarList();
+  }
   var kal = document.getElementById('page-kalendar');
   if (kal && kal.classList.contains('active') && typeof renderConventionalCalendar === 'function') {
     renderConventionalCalendar();
@@ -112,13 +132,14 @@ var currentSchema = [], customFieldValues = {}, repeaterValues = {}, wizardStep 
 
 <script>
 var ekspedisiMap = {};
-var TAHAP_ORDER = ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','diterima','dibatalkan','diaktifkan_kembali'];
+var TAHAP_ORDER = ['diinput','disposisi_dibuat','tercetak','keputusan','balasan','tertanda','diterima','dibatalkan','diaktifkan_kembali'];
 var TAHAP_LABEL = { 
   diinput:'Diinput', 
   disposisi_dibuat:'Disposisi dibuat', 
   tercetak:'Tercetak', 
   keputusan:'Keputusan pimpinan', 
-  balasan:'Balasan dibuat', 
+  balasan:'Balasan dibuat',
+  tertanda:'Surat tertanda diunggah', 
   diterima:'Diterima pemohon', 
   dibatalkan:'Dibatalkan', 
   diaktifkan_kembali:'Diaktifkan kembali',
@@ -128,4 +149,41 @@ var TAHAP_LABEL = {
 function loadEkspedisiMap() {
   UIHelper.callApi('apiGetEkspedisiAll', [], function (d) { ekspedisiMap = d || {}; }, function () {}, true);
 }
+</script>
+
+<script>
+/* ============ ARSIP SEGAR: PATCHED dengan _whenReady ============ */
+(function(){
+  if (window.__skFreshWired) return;
+  window.__skFreshWired = true;
+
+  function skReload(cb){
+    try {
+      UIHelper.callApi('apiGetDaftarSuratKeluar', [], function(d){
+        rawDataSuratKeluar = Array.isArray(d) ? d : [];
+        if (typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
+        if (cb) cb();
+      }, function(){ if (cb) cb(); });
+    } catch(e){ if (cb) cb(); }
+  }
+  window.skReload = skReload;
+
+  /* PATCHED: tunggu switchPage tersedia sebelum di-wrap */
+  window._whenReady('switchPage', function(origSwitch){
+    window.switchPage = function(id){
+      try { origSwitch.apply(this, arguments); } catch(e){ console.warn('[switchPage wrapper]', e); }
+      if (id === 'page-surat-keluar') skReload();
+    };
+  });
+
+  /* PATCHED: tunggu submitSuratKeluar tersedia sebelum di-wrap */
+  window._whenReady('submitSuratKeluar', function(origSubmit){
+    window.submitSuratKeluar = function(){
+      var r;
+      try { r = origSubmit.apply(this, arguments); } catch(e){ console.warn('[submitSuratKeluar wrapper]', e); }
+      setTimeout(function(){ skReload(); }, 900);
+      return r;
+    };
+  });
+})();
 </script>

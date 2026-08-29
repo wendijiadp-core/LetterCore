@@ -1,26 +1,26 @@
-<section id="sec-disposisi">
+<section id="sec-disposisi" style="display:flex; flex-direction:column; height:100%; min-height:0; gap:14px;">
 
-  <!-- Toolbar daftar -->
-  <div class="action-toolbar-row" id="ekspedisiToolbar">
-    <div class="toolbar-left">
-      <input type="text" id="disposisiSearchInput" class="search-input-clean" placeholder="Cari surat..." onkeyup="renderDisposisiCards()">
-      <select id="filterTahap" class="form-control" style="width:190px; margin-bottom:0;" onchange="renderDisposisiCards()">
-        <option value="">Semua tahap</option>
-        <option value="diinput">Diinput</option>
-        <option value="disposisi_dibuat">Disposisi dibuat</option>
-        <option value="tercetak">Tercetak</option>
-        <option value="keputusan">Keputusan</option>
-        <option value="diterima">Selesai</option>
-      </select>
+  <!-- TOOLBAR FIXED (tidak ikut scroll) -->
+  <div class="sm-toolbar" id="ekspedisiToolbar" style="margin-bottom:0;">
+    <div class="sm-toolbar-row1">
+      <div class="search-box-v2 sm-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="disposisiSearchInput" placeholder="Cari agenda, pengirim, perihal, deskripsi..." onkeyup="renderDisposisiCards()">
+      </div>
+      <div class="sm-segment">
+        <button class="sm-seg active" id="xseg-ALL" onclick="setExpFilter('ALL')">Semua <span class="sm-seg-count" id="xsegCount-ALL">0</span></button>
+        <button class="sm-seg" id="xseg-PROSES" onclick="setExpFilter('PROSES')">Proses <span class="sm-seg-count" id="xsegCount-PROSES">0</span></button>
+        <button class="sm-seg" id="xseg-SELESAI" onclick="setExpFilter('SELESAI')">Selesai <span class="sm-seg-count" id="xsegCount-SELESAI">0</span></button>
+        <button class="sm-seg" id="xseg-BATAL" onclick="setExpFilter('BATAL')">Batal <span class="sm-seg-count" id="xsegCount-BATAL">0</span></button>
+      </div>
     </div>
-    <div class="toolbar-right"><span class="badge-status active" id="disposisiCountBadge">0 Surat</span></div>
   </div>
 
-  <!-- Daftar kartu -->
-  <div id="ekspedisiList" class="row g-3"></div>
+  <!-- DAFTAR ROW + STEPPER (single scroll) -->
+  <div id="ekspedisiList" class="exp-list-wrap"></div>
 
   <!-- DETAIL INLINE (tanpa modal) -->
-  <div id="ekspedisiDetail" class="d-none" style="margin-top:1.5rem;">
+  <div id="ekspedisiDetail" class="d-none">
     <div class="wizard-step">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="wizard-step-title" style="margin-bottom:0;" id="ekspedisiTitle"></div>
@@ -34,13 +34,54 @@
 </section>
 
 <style>
-.tl-item { display: flex; gap: 12px; padding: 8px 0; position: relative; }
-.tl-line { position: absolute; left: 5px; top: 26px; bottom: -8px; width: 2px; background: rgba(163,177,198,.3); }
-.tl-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--neo-accent); box-shadow: 0 0 8px rgba(102,126,234,.5); margin-top: 4px; flex-shrink: 0; }
-.tl-item.future .tl-dot { background: rgba(163,177,198,.4); box-shadow: none; }
-.tl-item.future .tl-line { background: rgba(163,177,198,.15); }
-.tl-judul { font-size: .82rem; font-weight: 800; color: var(--neo-text-heading); }
-.tl-item.future .tl-judul { color: var(--neo-text-muted); }
-.tl-meta { font-size: .68rem; color: var(--neo-text-sub); font-weight: 600; }
-.dot-status { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; }
+/* =========================================================
+   EKSPEDISI: FIXED HEADER + ROW + STEPPER + SINGLE SCROLL
+   ========================================================= */
+.page-content-scroll:has(#page-disposisi.active){ overflow:hidden !important; }
+#page-disposisi{ height:100%; display:flex; flex-direction:column; }
+
+.exp-list-wrap { flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:6px; }
+.exp-list-wrap::-webkit-scrollbar { width:6px; }
+.exp-list-wrap::-webkit-scrollbar-thumb { background:rgba(163,177,198,0.4); border-radius:10px; }
+
+#ekspedisiDetail { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:6px; }
+
+/* Row */
+.exp-row { display:flex; align-items:center; gap:14px; background:var(--neo-surface); border-radius:16px; padding:12px 16px; box-shadow:var(--neo-soft-flat); cursor:pointer; transition:all 0.25s ease; border-left:3px solid transparent; }
+.exp-row:hover { box-shadow:var(--neo-soft-raised); transform:translateX(3px); border-left-color:var(--neo-accent); }
+.exp-row.exp-batal { opacity:0.75; border-left-color:rgba(245,101,101,0.55); }
+.exp-main { flex:1; min-width:0; }
+.exp-title { font-size:0.88rem; font-weight:800; color:var(--neo-text-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.exp-title.batal { text-decoration:line-through; color:#c53030; }
+.exp-meta { font-size:0.7rem; color:var(--neo-text-sub); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.exp-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.exp-timeline-btn { background:var(--neo-surface); border:none; color:var(--neo-text-heading); font-weight:700; font-size:0.72rem; padding:7px 14px; border-radius:999px; box-shadow:var(--neo-soft-flat); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s; }
+.exp-timeline-btn:hover { box-shadow:var(--neo-soft-raised); color:var(--neo-accent); }
+
+/* Mini stepper 5 tahap */
+.exp-stepper { display:flex; align-items:center; width:190px; flex-shrink:0; }
+.exp-step { display:flex; align-items:center; flex:1; }
+.exp-step:last-child { flex:0 0 auto; }
+.exp-dot { width:12px; height:12px; border-radius:50%; background:var(--neo-surface); box-shadow:var(--neo-soft-inset); flex-shrink:0; transition:all 0.3s; }
+.exp-line { flex:1; height:2px; background:rgba(163,177,198,0.3); margin:0 4px; }
+.exp-line.done-line { background:var(--neo-accent); }
+.exp-step.done .exp-dot { background:var(--neo-accent); box-shadow:0 0 8px rgba(102,126,234,0.5); }
+.exp-step.current .exp-dot { animation:expPulse 1.6s infinite; }
+@keyframes expPulse { 0%,100% { box-shadow:0 0 0 0 rgba(102,126,234,0.5); } 50% { box-shadow:0 0 0 6px rgba(102,126,234,0); } }
+.exp-step.ok .exp-dot { background:var(--neo-status-active); box-shadow:0 0 8px rgba(72,187,120,0.5); }
+.exp-stepper.exp-batal .exp-dot { background:rgba(163,177,198,0.4); box-shadow:none; animation:none; }
+.exp-stepper.exp-batal .exp-line { background:rgba(163,177,198,0.2); }
+
+/* Timeline detail (tetap) */
+.tl-item { display:flex; gap:12px; padding:8px 0; position:relative; }
+.tl-line { position:absolute; left:5px; top:26px; bottom:-8px; width:2px; background:rgba(163,177,198,.3); }
+.tl-dot { width:12px; height:12px; border-radius:50%; background:var(--neo-accent); box-shadow:0 0 8px rgba(102,126,234,.5); margin-top:4px; flex-shrink:0; }
+.tl-item.future .tl-dot { background:rgba(163,177,198,.4); box-shadow:none; }
+.tl-item.future .tl-line { background:rgba(163,177,198,.15); }
+.tl-judul { font-size:.82rem; font-weight:800; color:var(--neo-text-heading); }
+.tl-item.future .tl-judul { color:var(--neo-text-muted); }
+.tl-meta { font-size:.68rem; color:var(--neo-text-sub); font-weight:600; }
+.dot-status { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; }
+
+@media (max-width:1200px) { .exp-stepper { display:none; } }
 </style>

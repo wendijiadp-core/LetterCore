@@ -1,0 +1,1633 @@
+<style>
+/* ============ NEOSELECT ============ */
+.neosel{position:relative;}
+.neosel-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--neo-surface);border:none;border-radius:12px;padding:10px 14px;font-weight:700;font-size:.8rem;color:var(--neo-text-heading);box-shadow:var(--neo-soft-flat);cursor:pointer;transition:all .2s;font-family:inherit;}
+.neosel-btn:hover{box-shadow:var(--neo-soft-raised);}
+.neosel.open .neosel-btn{box-shadow:var(--neo-soft-inset);}
+.neosel-panel{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--neo-surface);border-radius:14px;box-shadow:var(--neo-soft-raised-lg);padding:8px;z-index:1060;max-height:230px;overflow-y:auto;}
+.neosel-item{border-radius:10px;padding:8px 12px;font-size:.78rem;font-weight:700;color:var(--neo-text-sub);cursor:pointer;box-shadow:var(--neo-soft-flat);margin-bottom:6px;transition:all .15s;background:var(--neo-surface);}
+.neosel-item:last-child{margin-bottom:0;}
+.neosel-item:hover{transform:translateY(-1px);box-shadow:var(--neo-soft-raised);color:var(--neo-text-heading);}
+.neosel-item.active{box-shadow:var(--neo-soft-inset);color:var(--neo-accent);}
+.neosel-sm .neosel-btn{padding:7px 10px;font-size:.72rem;border-radius:10px;}
+.jk-row{display:grid;grid-template-columns:1.4fr .9fr 1.4fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(163,177,198,.15);}
+.sk-dyn-title{font-size:.7rem;font-weight:800;color:var(--neo-accent);text-transform:uppercase;margin:14px 0 8px;letter-spacing:.5px;}
+.sk-info-box{background:rgba(102,126,234,.06);border:1px solid rgba(102,126,234,.25);border-radius:12px;padding:10px 12px;font-size:.72rem;color:var(--neo-text-sub);font-weight:600;}
+
+/* ===== HUB PENGATURAN: kartu kelompok ===== */
+.sk-hub-group{font-size:.68rem;font-weight:800;color:var(--neo-text-sub);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;}
+.sk-hub-group:first-child{margin-top:0;}
+.sk-hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sk-hub-card{display:flex;align-items:center;gap:12px;text-align:left;background:var(--neo-surface);border:none;border-radius:14px;padding:12px 14px;box-shadow:var(--neo-soft-flat);cursor:pointer;transition:all .2s;font-family:inherit;}
+.sk-hub-card:hover{box-shadow:var(--neo-soft-raised);transform:translateY(-1px);}
+.sk-hub-card.sk-hub-wide{grid-column:1 / -1;}
+.sk-hub-ico{width:38px;height:38px;border-radius:12px;background:var(--neo-surface);box-shadow:var(--neo-soft-inset);display:flex;align-items:center;justify-content:center;color:var(--neo-accent);font-size:1.05rem;flex-shrink:0;}
+.sk-hub-title{font-size:.8rem;font-weight:800;color:var(--neo-text-heading);}
+.sk-hub-desc{font-size:.68rem;font-weight:600;color:var(--neo-text-sub);margin-top:2px;}
+
+/* ===== MODAL NEO ===== */
+.neo-dialog{
+  position:fixed; inset:0; z-index:9998;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px 16px;
+  background:rgba(233,236,242,0.72);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  overflow-y:auto;
+}
+.neo-dialog-card.sk-wide{width:920px;max-width:94vw;}
+.neo-dialog-card.sk-mid{width:760px;max-width:94vw;}
+.neo-dialog .neo-modal-body{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(102,126,234,0.55) transparent;
+}
+.neo-dialog .neo-modal-body::-webkit-scrollbar{ width:9px; }
+.neo-dialog .neo-modal-body::-webkit-scrollbar-track{ background:rgba(163,177,198,0.18); border-radius:10px; }
+.neo-dialog .neo-modal-body::-webkit-scrollbar-thumb{ background:rgba(102,126,234,0.55); border-radius:10px; border:2px solid transparent; background-clip:content-box; }
+.neo-dialog .neo-swal-popup.neo-dialog-card::after{
+  content:''; position:absolute; left:14px; right:14px; bottom:66px; height:30px;
+  background:linear-gradient(to top, rgba(226,230,238,0.98), rgba(226,230,238,0));
+  border-radius:0 0 16px 16px; pointer-events:none; opacity:0; transition:opacity .2s ease; z-index:5;
+}
+.neo-dialog .neo-swal-popup.neo-dialog-card.sk-can-scroll::after{ opacity:1; }
+.neo-scroll-hint{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:70px;
+  display:none; align-items:center; gap:5px; width:max-content;
+  font-size:0.66rem; font-weight:800; color:var(--neo-accent);
+  background:var(--neo-surface); box-shadow:var(--neo-soft-raised);
+  padding:4px 13px; border-radius:99px; z-index:7; pointer-events:none; letter-spacing:.3px;
+}
+.neo-dialog .neo-swal-popup.sk-show-hint > .neo-scroll-hint{ display:inline-flex; }
+.neo-scroll-hint i{ animation:neoBob 1.3s ease-in-out infinite; }
+@keyframes neoBob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(3px);} }
+</style>
+
+<script>
+/* =====================================================================
+   SURAT KELUAR UI — VERSI TUNGGAL (ganti total, tanpa duplikat)
+   ===================================================================== */
+var _neoSelCb = {};
+var _escSK = function(v){ return UIHelper.escapeHtml(v); };
+
+/* ================= CACHE JENIS (buka instan) ================= */
+var _skJenisCache = null;
+function _skPreloadJenis(){
+  try {
+    UIHelper.callApi('apiGetDaftarJenisKeluar', [], function(d){ _skJenisCache = Array.isArray(d)?d:[]; }, function(){ _skJenisCache = _skJenisCache || []; });
+  } catch(e){}
+}
+_skPreloadJenis();
+
+/* ================= CACHE GLOBAL ================= */
+var _lcCache = {};
+function _lcPrime(key, api){
+  UIHelper.callApi(api, [], function(d){ _lcCache[key] = d || []; }, function(){}, true);
+}
+function _lcWarmAll(){
+  _lcPrime('tplKeluar', 'apiGetDaftarTemplateKeluar');
+  _lcPrime('placeholder', 'apiGetDaftarPlaceholder');
+  _lcPrime('fieldKeys', 'apiGetAvailableFieldKeys');
+  _lcPrime('tplDisp', 'apiGetTemplateDisposisiList');
+  _lcPrime('transform', 'apiGetDaftarTransformasiPH');
+}
+setTimeout(_lcWarmAll, 400);
+function _lcGet(key, api, cb){
+  if (_lcCache[key]) { cb(_lcCache[key]); return; }
+  UIHelper.callApi(api, [], function(d){ _lcCache[key] = d || []; cb(_lcCache[key]); }, function(){ cb([]); }, true);
+}
+function _lcInvalidate(){ _lcCache = {}; setTimeout(_lcWarmAll, 300); }
+
+/* ================= DIALOG MANAGER ================= */
+var _skDialogs = {};
+
+function _skBuildDialog(html, zIndex){
+  var ov = document.createElement('div');
+  ov.className = 'neo-dialog';
+  ov.style.zIndex = zIndex || 9998;
+  ov.innerHTML = html;
+
+  var card = ov.querySelector('.neo-swal-popup') || ov.firstElementChild;
+  if (card) {
+    var inner = card.querySelector('.neo-swal-inner');
+    if (inner && !inner.classList.contains('neo-modal-body')) inner.classList.add('neo-modal-body');
+    var actions = card.querySelector('.neo-dialog-actions');
+
+    card.style.setProperty('position','relative','important');
+    card.style.setProperty('display','flex','important');
+    card.style.setProperty('flex-direction','column','important');
+    card.style.setProperty('max-height','92vh','important');
+    card.style.setProperty('overflow','hidden','important');
+    if (inner) {
+      inner.style.setProperty('flex','1 1 auto','important');
+      inner.style.setProperty('min-height','0','important');
+      inner.style.setProperty('overflow-y','auto','important');
+      inner.style.setProperty('padding-bottom','30px','important');
+    }
+    if (actions) actions.style.setProperty('flex','0 0 auto','important');
+
+    if (!card.querySelector('.neo-scroll-hint')) {
+      var hint = document.createElement('div');
+      hint.className = 'neo-scroll-hint';
+      hint.innerHTML = '<i class="bi bi-chevron-down"></i> scroll';
+      card.appendChild(hint);
+    }
+    _skWireScrollHint(card, ov);
+  }
+  return ov;
+}
+
+function _skWireScrollHint(card, ov){
+  if (!card || card.__skHintWired) return;
+  card.__skHintWired = true;
+  var body = card.querySelector('.neo-modal-body');
+  var scroller = function(){
+    if (body && body.scrollHeight - body.clientHeight > 4) return body;
+    if (ov && ov.scrollHeight - ov.clientHeight > 4) return ov;
+    return null;
+  };
+  var update = function(){
+    var sc = scroller();
+    var show = !!sc && (sc.scrollTop + sc.clientHeight < sc.scrollHeight - 6);
+    card.classList.toggle('sk-show-hint', show);
+    card.classList.toggle('sk-can-scroll', !!sc);
+  };
+  if (body) body.addEventListener('scroll', update, { passive:true });
+  if (ov) ov.addEventListener('scroll', update, { passive:true });
+  try { var mo = new MutationObserver(update); mo.observe(card, { childList:true, subtree:true }); } catch(e){}
+  setTimeout(update, 80); setTimeout(update, 400); setTimeout(update, 900);
+  window.addEventListener('resize', update);
+}
+
+function _skOpenDialog(key, html, zIndex){
+  _skCloseDialog(key);
+  var ov = _skBuildDialog(html, zIndex);
+  document.body.appendChild(ov);
+  _skDialogs[key] = ov;
+  return ov;
+}
+function _skCloseDialog(key){ if (_skDialogs[key] && _skDialogs[key].parentNode) _skDialogs[key].parentNode.removeChild(_skDialogs[key]); delete _skDialogs[key]; }
+function skClose(key){ _skCloseDialog(key); }
+
+/* ================= NEOSELECT ================= */
+function neoSelectHtml(id, options, value, placeholder) {
+  var sel=null; for (var i=0;i<options.length;i++) if (String(options[i].value)===String(value)) sel=options[i];
+  var label = sel ? sel.label : (placeholder||'— pilih —');
+  return '<div class="neosel" id="'+id+'" data-value="'+_escSK(value||'')+'">' +
+    '<button type="button" class="neosel-btn" onclick="neoSelToggle(\''+id+'\')"><span class="neosel-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_escSK(label)+'</span><i class="bi bi-chevron-down"></i></button>' +
+    '<div class="neosel-panel d-none">' + options.map(function(o){
+      return '<div class="neosel-item'+(String(o.value)===String(value)?' active':'')+'" data-value="'+_escSK(o.value)+'" data-label="'+_escSK(o.label)+'" onclick="neoSelChoose(\''+id+'\', this)">'+_escSK(o.label)+'</div>';
+    }).join('') + '</div></div>';
+}
+function neoSelToggle(id){ var w=document.getElementById(id); if(!w)return; var p=w.querySelector('.neosel-panel'); var was=!p.classList.contains('d-none'); closeAllNeoSel(); if(!was){p.classList.remove('d-none');w.classList.add('open');} }
+function neoSelChoose(id,item){ var w=document.getElementById(id); if(!w)return; w.setAttribute('data-value',item.getAttribute('data-value')); w.querySelector('.neosel-label').textContent=item.getAttribute('data-label'); var it=w.querySelectorAll('.neosel-item'); for(var i=0;i<it.length;i++) it[i].classList.toggle('active',it[i]===item); closeAllNeoSel(); if(typeof _neoSelCb[id]==='function') _neoSelCb[id](item.getAttribute('data-value'),item.getAttribute('data-label')); }
+function neoSelValue(id){ var w=document.getElementById(id); return w?(w.getAttribute('data-value')||''):''; }
+function closeAllNeoSel(){ var o=document.querySelectorAll('.neosel.open'); for(var i=0;i<o.length;i++){o[i].classList.remove('open');o[i].querySelector('.neosel-panel').classList.add('d-none');} }
+document.addEventListener('click', function(e){ if(!e.target.closest('.neosel')) closeAllNeoSel(); });
+
+/* ================= HUB PENGATURAN (kartu kelompok) ================= */
+function openPengaturan(){
+  _skOpenDialog('skHub', '<div class="neo-swal-popup neo-dialog-card sk-mid">' +
+    '<div class="neo-swal-inner" style="align-items:stretch;">' +
+      '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-gear-fill"></i></div>' +
+      '<div class="neo-swal-title">Pengaturan Surat</div>' +
+      '<div class="neo-swal-text" style="font-size:0.72rem; margin-bottom:4px;">Pusat administrasi persuratan.</div>' +
+
+      '<div class="sk-hub-group">Surat Masuk</div>' +
+      '<div class="sk-hub-grid">' +
+        '<button type="button" class="sk-hub-card" onclick="skClose(\'skHub\'); openManajemenKategori();">' +
+          '<div class="sk-hub-ico"><i class="bi bi-tags"></i></div>' +
+          '<div class="sk-hub-txt"><div class="sk-hub-title">Kategori & Field</div><div class="sk-hub-desc">Jenis surat masuk & isian form</div></div>' +
+        '</button>' +
+        '<button type="button" class="sk-hub-card" onclick="skClose(\'skHub\'); openModalKelolaTemplateDisposisi();">' +
+          '<div class="sk-hub-ico"><i class="bi bi-file-earmark-word"></i></div>' +
+          '<div class="sk-hub-txt"><div class="sk-hub-title">Template Disposisi</div><div class="sk-hub-desc">Doc disposisi per kategori</div></div>' +
+        '</button>' +
+      '</div>' +
+
+      '<div class="sk-hub-group">Surat Keluar</div>' +
+      '<div class="sk-hub-grid">' +
+        '<button type="button" class="sk-hub-card sk-hub-wide" onclick="skClose(\'skHub\'); openModalKelolaTemplate();">' +
+          '<div class="sk-hub-ico"><i class="bi bi-collection"></i></div>' +
+          '<div class="sk-hub-txt"><div class="sk-hub-title">Jenis & Template</div><div class="sk-hub-desc">Mode Generate/Catat & template dokumen</div></div>' +
+        '</button>' +
+      '</div>' +
+
+      '<div class="sk-hub-group">Mesin Dokumen</div>' +
+      '<div class="sk-hub-grid">' +
+        '<button type="button" class="sk-hub-card" onclick="skClose(\'skHub\'); openModalKelolaPlaceholder();">' +
+          '<div class="sk-hub-ico"><i class="bi bi-braces"></i></div>' +
+          '<div class="sk-hub-txt"><div class="sk-hub-title">Placeholder</div><div class="sk-hub-desc">Pemetaan {{KEY}} ke sumber data</div></div>' +
+        '</button>' +
+        '<button type="button" class="sk-hub-card" onclick="skClose(\'skHub\'); openModalKelolaTransformasiPH();">' +
+          '<div class="sk-hub-ico"><i class="bi bi-braces-asterisk"></i></div>' +
+          '<div class="sk-hub-txt"><div class="sk-hub-title">Transformasi</div><div class="sk-hub-desc">Ganti teks & format tanggal</div></div>' +
+        '</button>' +
+      '</div>' +
+
+    '</div>' +
+    '<div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skHub\')">Tutup</button></div></div>', 9999);
+}
+
+/* ================= ENTRY POINT ================= */
+function _todayYMD(){ var n=new Date(); return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2); }
+
+function openModalSuratKeluar(asal, idSuratInduk) {
+  var suratInduk=null;
+  if (asal==='BALASAN' && idSuratInduk) suratInduk = rawDataSurat.find(function(s){ return s.idSurat===idSuratInduk; });
+  if (_skJenisCache && _skJenisCache.length) {
+    _renderModalSuratKeluar(asal, suratInduk, _skJenisCache, idSuratInduk);
+    return;
+  }
+  Loader.show('Memuat form surat keluar...');
+  UIHelper.callApi('apiGetDaftarJenisKeluar', [], function(jenisList){
+    Loader.hide();
+    _skJenisCache = Array.isArray(jenisList)?jenisList:[];
+    _renderModalSuratKeluar(asal, suratInduk, _skJenisCache, idSuratInduk);
+  }, function(e){ Loader.hide(); UIHelper.showToast('Gagal memuat: '+e, false); });
+}
+
+function skIndukData(id){
+  var s = rawDataSurat.find(function(x){ return x.idSurat===id; }); if(!s) return {};
+  var out={};
+  ['perihal','pengirim','tujuan','nomorSurat','agendaNomor','deskripsi','pic','kontak','penanggungJawab'].forEach(function(k){ if(s[k]) out[k]=s[k]; });
+  if (s.tglSurat) out.tglSuratMasuk = s.tglSurat;
+  if (s.customFields) Object.keys(s.customFields).forEach(function(k){ out[k]=s.customFields[k]; });
+  return out;
+}
+
+var _skJenisList=[]; var _skAsal='';
+
+function _renderModalSuratKeluar(asal, suratInduk, jenisList, idSuratInduk) {
+  _skJenisList=jenisList||[]; _skAsal=asal;
+  var judul = asal==='BALASAN' ? 'Buat Surat Balasan' : 'Catat Surat Keluar Mandiri';
+  var defaultJenis='',defaultPerihal='',defaultTujuan='',defaultPenandatangan='';
+  if (asal==='BALASAN' && suratInduk) {
+    defaultPerihal=suratInduk.perihal||''; defaultTujuan=suratInduk.pengirim||'';
+    var kat=kategoriList.find(function(k){ return k.id===suratInduk.kategoriId; });
+    if (kat){ defaultJenis=kat.balasanDefault||''; defaultPenandatangan=kat.tujuanDisposisi||''; }
+  }
+  var match=_skJenisList.find(function(j){ return j.id===defaultJenis||j.nama===defaultJenis; });
+  var defaultId=match?match.id:'';
+  var infoBox = (asal==='BALASAN')
+    ? '<div class="sk-info-box"><i class="bi bi-info-circle me-1"></i> Jenis otomatis dari Kategori. Isian placeholder diambil dari <b>Surat Masuk</b>. Anda hanya isi Nomor, Tanggal & Penandatangan.</div>'
+    : '<div class="sk-info-box"><i class="bi bi-info-circle me-1"></i> Surat Mandiri: isian placeholder dari form di bawah.</div>';
+
+  _skOpenDialog('skForm', '<div class="neo-swal-popup neo-dialog-card sk-wide">' +
+    '<div class="neo-swal-inner" style="align-items:stretch;">' +
+      '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-envelope-paper-fill"></i></div>' +
+      '<div class="neo-swal-title">'+judul+'</div>' +
+      '<div class="neo-swal-text" style="font-size:0.75rem;">'+(asal==='BALASAN'?'Membalas: '+(suratInduk?_escSK(suratInduk.perihal):'-'):'Surat keluar inisiatif unit — form menyesuaikan jenis.')+'</div>' +
+      '<input type="hidden" id="skAsal" value="'+asal+'">' +
+      '<input type="hidden" id="skIdSuratInduk" value="'+(idSuratInduk||'')+'">' +
+      '<input type="hidden" id="skUrlDokumen" value="">' +
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">' +
+        '<div><label class="form-label">Jenis Surat Keluar'+(asal==='BALASAN'?' <span style="color:var(--neo-accent);">(otomatis)</span>':'')+'</label>'+neoSelectHtml('NS_skJenis', _skJenisList.map(function(j){return {value:j.id,label:j.nama};}), defaultId, '— pilih jenis —')+'</div>' +
+        '<div><label class="form-label">Nomor Surat Keluar <span style="color:#c53030;">*</span></label><input type="text" id="skNomor" class="form-control" placeholder="Ketik / tempel nomor..."><div style="font-size:0.65rem;color:var(--neo-text-muted);margin-top:4px;"><i class="bi bi-info-circle me-1"></i>Salin dari aplikasi nomor kantor</div></div>' +
+        '<div><label class="form-label">Tanggal</label><input type="date" id="skTanggal" class="form-control" value="'+_todayYMD()+'"></div>' +
+        '<div><label class="form-label">Penandatangan</label><input type="text" id="skPenandatangan" class="form-control" value="'+_escSK(defaultPenandatangan)+'"></div>' +
+        '<div style="grid-column:1/-1;"><label class="form-label">Tujuan</label><input type="text" id="skTujuan" class="form-control" value="'+_escSK(defaultTujuan)+'"></div>' +
+        '<div style="grid-column:1/-1;"><label class="form-label">Perihal</label><input type="text" id="skPerihal" class="form-control" value="'+_escSK(defaultPerihal)+'"></div>' +
+      '</div>' +
+      (asal==='MANDIRI' ? '<div class="sk-dyn-title"><i class="bi bi-ui-radios me-1"></i> Isian Sesuai Jenis</div><div id="skDynamicFields" class="row g-2"></div>' : '') +
+      '<div style="margin-top:14px;">'+infoBox+'</div>' +
+      '<div style="margin-top:14px; padding:12px; background:rgba(102,126,234,0.05); border-radius:12px; border:1px dashed rgba(102,126,234,0.3);">' +
+        '<div style="font-size:0.72rem; font-weight:800; color:var(--neo-accent); margin-bottom:8px; text-transform:uppercase;">Dokumen</div>' +
+        '<div id="skDocArea"><button type="button" class="dsc-btn-primary" style="margin-bottom:0;width:100%;" onclick="generateDokumenKeluar()"><i class="bi bi-magic me-1"></i> 🚀 Buat Dokumen dari Template</button></div>' +
+        '<div id="skDocResult" style="display:none; margin-top:8px;"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="neo-dialog-actions">' +
+      '<button type="button" class="neo-btn-cancel" onclick="skClose(\'skForm\')">Batal</button>' +
+      '<button type="button" class="neo-btn-confirm" onclick="submitSuratKeluar()"><i class="bi bi-save me-1"></i> Simpan</button>' +
+    '</div></div>', 9998);
+
+  _neoSelCb['NS_skJenis'] = function(v){ skJenisChanged(v); };
+  if (defaultId) skJenisChanged(defaultId); else onSkJenisChange();
+}
+function onSkJenisChange(){ skJenisChanged(neoSelValue('NS_skJenis')); }
+function skJenisChanged(jenisId){
+  var j=_skJenisList.find(function(x){return x.id===jenisId;});
+  var btn=document.querySelector('#skDocArea button');
+  if (btn) btn.innerHTML = (j&&j.mode==='TEMPLATE')?'<i class="bi bi-magic me-1"></i> 🚀 Buat Dokumen dari Template':'<i class="bi bi-link-45deg me-1"></i> 📝 Lewati (Catat Manual Nanti)';
+  if (_skAsal!=='MANDIRI') return;
+  var box=document.getElementById('skDynamicFields'); if(!box) return;
+  if (!jenisId){ box.innerHTML='<div class="col-12" style="font-size:.72rem;color:var(--neo-text-muted);">Pilih jenis dulu.</div>'; return; }
+  box.innerHTML='<div class="col-12" style="font-size:.72rem;color:var(--neo-text-muted);">Memuat isian...</div>';
+  UIHelper.callApi('apiGetSchemaJenisKeluar', [{idJenis:jenisId}], function(f){ skRenderSchema(Array.isArray(f)?f:[]); }, function(){ box.innerHTML=''; });
+}
+
+var skRepValues={};
+function skRenderSchema(fields){
+  skRepValues={};
+  var box=document.getElementById('skDynamicFields'); if(!box) return;
+  if(!fields.length){ box.innerHTML='<div class="col-12" style="font-size:.72rem;color:var(--neo-text-muted);">Belum ada isian khusus. Tambah lewat Pengaturan → Jenis & Template → Field Mandiri.</div>'; return; }
+  box.innerHTML=fields.map(function(f){
+    var idf='skf_'+f.field_key;
+    var lbl='<label class="form-label">'+_escSK(f.label)+(f.required?' *':'')+'</label>';
+    if(f.tipe==='textarea') return '<div class="col-12">'+lbl+'<textarea id="'+idf+'" class="form-control" rows="2"></textarea></div>';
+    if(f.tipe==='select'){ var o=(f.opsi||'').split(',').map(function(x){return '<option>'+_escSK(x)+'</option>';}).join(''); return '<div class="col-md-6">'+lbl+'<select id="'+idf+'" class="form-control">'+o+'</select></div>'; }
+    if(f.tipe==='repeater'){ skRepValues[f.field_key]=[]; var cols=(f.opsi||'nama,keterangan').split(',');
+      return '<div class="col-12">'+lbl+'<div class="row g-1">'+cols.map(function(c,i){return '<div class="col"><input class="form-control" id="skrep_'+f.field_key+'_'+i+'" placeholder="'+_escSK(c)+'"></div>';}).join('')+'<div class="col-auto"><button type="button" class="dsc-btn-primary" style="margin-bottom:0;" onclick="skRepAdd(\''+f.field_key+'\',\''+_escSK(f.opsi||'')+'\')"><i class="bi bi-plus"></i></button></div></div><div id="skrep_'+f.field_key+'_body" class="mt-1"></div></div>'; }
+    var pick=''; if(f.sumber_data==='master_orang') pick='<button type="button" class="btn-picker" onclick="openCardPicker(\'orang\', function(a){ document.getElementById(\''+idf+'\').value=a[\'nama\']||\'\'; })"><i class="bi bi-grid-fill"></i></button>';
+    return '<div class="col-md-6">'+lbl+'<div class="d-flex gap-1"><input type="'+(f.tipe==='number'?'number':'text')+'" id="'+idf+'" class="form-control">'+pick+'</div></div>';
+  }).join('');
+}
+function skRepAdd(key,opsiStr){ var cols=opsiStr?opsiStr.split(','):['nama']; var row={},ok=false; cols.forEach(function(c,i){var e=document.getElementById('skrep_'+key+'_'+i); row[c]=e?e.value:''; if(row[c])ok=true;}); if(!ok){UIHelper.showToast('Isi minimal satu kolom',false);return;} skRepValues[key].push(row); cols.forEach(function(c,i){var e=document.getElementById('skrep_'+key+'_'+i); if(e)e.value='';}); var b=document.getElementById('skrep_'+key+'_body'); b.innerHTML=skRepValues[key].map(function(r){return '<div style="font-size:.7rem;color:var(--neo-text-sub);font-weight:600;">• '+cols.map(function(c){return _escSK(r[c]||'');}).filter(Boolean).join(' · ')+'</div>';}).join(''); }
+function skCollectDynamic(){ var out={}; var box=document.getElementById('skDynamicFields'); if(!box)return out; box.querySelectorAll('[id^="skf_"]').forEach(function(e){ var k=e.id.substring(4); if(e.value)out[k]=e.value; }); Object.keys(skRepValues).forEach(function(k){ if(skRepValues[k].length) out[k]=skRepValues[k].map(function(r){return Object.values(r).filter(Boolean).join(' ');}).join('; '); }); return out; }
+
+function generateDokumenKeluar(){
+  var jenis=neoSelValue('NS_skJenis'); var j=_skJenisList.find(function(x){return x.id===jenis;});
+  if (j&&j.mode!=='TEMPLATE'){ UIHelper.showToast('Jenis ini mode CATAT — lewati.',false); return; }
+  var nomor=document.getElementById('skNomor').value.trim(); var perihal=document.getElementById('skPerihal').value.trim();
+  if(!nomor||!perihal){ UIHelper.showToast('Isi Nomor dan Perihal dulu.',false); return; }
+  Loader.show('Membuat dokumen...');
+  var data={ jenisKeluar:jenis, nomorKeluar:nomor, perihal:perihal, tujuan:document.getElementById('skTujuan').value.trim(), tglKeluar:document.getElementById('skTanggal').value, penandatangan:document.getElementById('skPenandatangan').value.trim(), pemohon:'' };
+  var asal=document.getElementById('skAsal').value; var idInduk=document.getElementById('skIdSuratInduk').value;
+  if (asal==='BALASAN'&&idInduk){ Object.assign(data, skIndukData(idInduk)); data.pemohon=data.pengirim||''; } else { Object.assign(data, skCollectDynamic()); }
+  UIHelper.callApi('apiGenerateDokumenKeluar', [{data:data,user:currentUser}], function(r){
+    Loader.hide();
+    if(r.success&&r.url){ document.getElementById('skUrlDokumen').value=r.url; document.getElementById('skDocArea').style.display='none'; var res=document.getElementById('skDocResult'); res.style.display='block';
+      res.innerHTML='<div style="background:rgba(72,187,120,0.1);border-radius:10px;padding:10px;border:1px solid rgba(72,187,120,0.3);"><div style="font-size:0.72rem;font-weight:700;color:#276749;margin-bottom:6px;"><i class="bi bi-check-circle-fill me-1"></i> Dokumen dibuat!</div><a href="'+r.url+'" target="_blank" style="font-size:0.75rem;color:var(--neo-accent);font-weight:700;word-break:break-all;">'+r.url+'</a></div>';
+      UIHelper.showToast('Dokumen siap dibuka.',true);
+    } else UIHelper.showToast(r.message||'Gagal.',false);
+  }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: '+e,false); });
+}
+
+function submitSuratKeluar(){
+  var asal=document.getElementById('skAsal').value; var idInduk=document.getElementById('skIdSuratInduk').value;
+  var nomor=document.getElementById('skNomor').value.trim(); var jenis=neoSelValue('NS_skJenis');
+  if(!jenis){UIHelper.showToast('Jenis wajib dipilih.',false);return;}
+  if(!nomor){UIHelper.showToast('Nomor wajib diisi.',false);document.getElementById('skNomor').focus();return;}
+  if(!document.getElementById('skPerihal').value.trim()){UIHelper.showToast('Perihal wajib diisi.',false);return;}
+  var data={ nomorKeluar:nomor, tglKeluar:document.getElementById('skTanggal').value, jenisKeluar:jenis, perihal:document.getElementById('skPerihal').value.trim(), tujuan:document.getElementById('skTujuan').value.trim(), penandatangan:document.getElementById('skPenandatangan').value.trim(), asal:asal, idSuratInduk:idInduk, urlDokumen:document.getElementById('skUrlDokumen').value.trim(), urlScan:'', status:'TERCATAT' };
+  if (asal==='BALASAN'&&idInduk) Object.assign(data, skIndukData(idInduk)); else Object.assign(data, skCollectDynamic());
+  Loader.show('Menyimpan surat keluar...');
+  UIHelper.callApi('apiSimpanSuratKeluar', [{data:data}], function(r){ Loader.hide(); UIHelper.showToast(r.message||'Tersimpan.',true); _skCloseDialog('skForm'); if(typeof refreshCoreData==='function') setTimeout(function(){refreshCoreData();},500); }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: '+e,false); });
+}
+
+/* ================= KELOLA JENIS & TEMPLATE (INSTAN) ================= */
+var _jkSaving=false;
+function openModalKelolaTemplate(){
+  _lcGet('tplKeluar', 'apiGetDaftarTemplateKeluar', function(r){ _renderKelolaJenis(Array.isArray(r)?r:[]); });
+}
+function _jkModeOptions(){ return [{value:'TEMPLATE',label:'Generate'},{value:'CATAT',label:'Catat'}]; }
+function _renderKelolaJenis(daftar){
+  var rows=daftar.map(function(t,idx){
+    var id=_escSK(t.id);
+    var actions='<div class="d-flex gap-1" style="align-items:center;justify-content:flex-end;">';
+    if (!t.isBalasan) actions+='<button type="button" class="btn-picker" title="Field Form Mandiri" onclick="openModalFieldJenis(\''+id+'\', this.closest(\'.jk-row\').querySelector(\'.jk-nama\').value)"><i class="bi bi-ui-radios"></i></button>';
+    if (t.mode==='TEMPLATE') actions+='<button type="button" class="btn-picker" title="Placeholder tersedia" onclick="_showJenisPlaceholders(this.closest(\'.jk-row\').querySelector(\'.jk-nama\').value)"><i class="bi bi-braces"></i></button>';
+    if (t.templateId) actions+='<button type="button" class="schedule-remove-btn" title="Hapus template" onclick="skHapusTemplate(\''+id+'\')"><i class="bi bi-eraser"></i></button>';
+    actions+='<button type="button" class="schedule-remove-btn" title="Nonaktifkan jenis" onclick="skHapusJenis(\''+id+'\', this.closest(\'.jk-row\').querySelector(\'.jk-nama\').value)"><i class="bi bi-trash"></i></button></div>';
+    return '<div class="jk-row" data-id="'+id+'">' +
+      '<input type="text" class="form-control jk-nama" value="'+_escSK(t.nama)+'" placeholder="Nama jenis">' +
+      '<div class="neosel-sm">'+neoSelectHtml('NS_mode_'+idx, _jkModeOptions(), t.mode, 'Mode')+'</div>' +
+      '<input type="text" class="form-control jk-tpl" value="'+_escSK(t.templateId)+'" placeholder="ID/URL template (opsional)">' +
+      actions + '</div>';
+  }).join('');
+  _skOpenDialog('skKelola', '<div class="neo-swal-popup neo-dialog-card sk-wide">' +
+    '<div class="neo-swal-inner" style="align-items:stretch;">' +
+      '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-collection"></i></div>' +
+      '<div class="neo-swal-title">Kelola Jenis & Template Surat Keluar</div>' +
+      '<div class="neo-swal-text" style="font-size:0.72rem; margin-bottom:10px;">CATAT→Field Mandiri. GENERATE→tanpa Field, lihat Placeholder. Jenis Balasan-Default tanpa Field.</div>' +
+      '<div style="display:grid; grid-template-columns:1.4fr .9fr 1.4fr auto; gap:10px; font-size:0.68rem; font-weight:800; color:var(--neo-text-sub); text-transform:uppercase;"><span>Nama Jenis</span><span>Mode</span><span>Template Docs</span><span>Aksi</span></div>' +
+      '<div id="jkBody" style="max-height:380px; overflow-y:auto;">'+rows+'</div>' +
+      '<button type="button" class="dsc-btn-primary" style="margin-top:10px;margin-bottom:0;" onclick="jkAddRow()"><i class="bi bi-plus-lg me-1"></i> Tambah Jenis Baru</button>' +
+    '</div>' +
+    '<div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skKelola\')">Tutup</button><button type="button" class="neo-btn-confirm" onclick="jkSaveAll()"><i class="bi bi-save me-1"></i> Simpan Semua</button></div></div>', 9999);
+}
+var _jkNewIdx=1000;
+function jkAddRow(){ _jkNewIdx++; document.getElementById('jkBody').insertAdjacentHTML('beforeend','<div class="jk-row" data-id=""><input type="text" class="form-control jk-nama" placeholder="Nama jenis baru"><div class="neosel-sm">'+neoSelectHtml('NS_mode_'+_jkNewIdx,_jkModeOptions(),'CATAT','Mode')+'</div><input type="text" class="form-control jk-tpl" placeholder="ID/URL template (opsional)"><div class="d-flex gap-1" style="justify-content:flex-end;"><button type="button" class="schedule-remove-btn" onclick="this.closest(\'.jk-row\').remove()"><i class="bi bi-x"></i></button></div></div>'); }
+function jkSaveAll(){
+  if(_jkSaving) return;
+  var rows=document.querySelectorAll('#jkBody .jk-row'); var tasks=[];
+  rows.forEach(function(r){ var nama=r.querySelector('.jk-nama').value.trim(); if(!nama)return; var m=r.querySelector('.neosel'); var mode=m?(m.getAttribute('data-value')||'CATAT'):'CATAT'; var tpl=r.querySelector('.jk-tpl').value.trim(); var id=r.getAttribute('data-id')||''; tasks.push({id:id,nama:nama,mode:mode,tpl:tpl}); });
+  if(!tasks.length){UIHelper.showToast('Tidak ada yang disimpan.',false);return;}
+  _jkSaving=true; Loader.show('Menyimpan jenis & template...');
+  var done=0; var finish=function(){ done++; if(done===tasks.length){ _jkSaving=false; _skJenisCache=null; _skPreloadJenis(); _lcInvalidate(); Loader.hide(); UIHelper.showToast('Jenis & template tersimpan.',true); _skCloseDialog('skKelola'); } };
+  tasks.forEach(function(t){ UIHelper.callApi('apiSimpanJenisKeluar', [{data:{id:t.id,nama:t.nama,mode:t.mode},user:currentUser}], function(res){ var fid=t.id||(res&&res.id)||''; if(t.tpl&&fid){ UIHelper.callApi('apiSimpanTemplateKeluar', [{jenis:fid,templateId:t.tpl,namaTemplate:t.nama,user:currentUser}], finish, finish); } else finish(); }, function(){ finish(); }); });
+}
+function skHapusJenis(id,nama){
+  Swal.fire({title:'Nonaktifkan jenis "'+nama+'"?', text:'Riwayat surat lama tetap aman.', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Nonaktifkan', cancelButtonText:'Batal'}).then(function(r){ if(r.isConfirmed){ Loader.show('Menghapus...'); UIHelper.callApi('apiHapusJenisKeluar',[{id:id}],function(res){Loader.hide();_skJenisCache=null;_skPreloadJenis();_lcInvalidate();UIHelper.showToast(res.message,true);openModalKelolaTemplate();},function(e){Loader.hide();UIHelper.showToast(e,false);}); } });
+}
+function skHapusTemplate(jenis){
+  Swal.fire({title:'Hapus template jenis ini?', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Hapus', cancelButtonText:'Batal'}).then(function(r){ if(r.isConfirmed){ Loader.show('Menghapus template...'); UIHelper.callApi('apiHapusTemplateKeluar',[{jenis:jenis}],function(res){Loader.hide();_lcInvalidate();UIHelper.showToast(res.message,true);openModalKelolaTemplate();},function(e){Loader.hide();UIHelper.showToast(e,false);}); } });
+}
+function _showJenisPlaceholders(nama){
+  _lcGet('placeholder', 'apiGetDaftarPlaceholder', function(rows){
+    var list=(rows||[]).map(function(r){ return '<div class="autofill-item"><code style="background:rgba(102,126,234,0.1);padding:2px 6px;border-radius:4px;">{{'+_escSK(r.key)+'}}</code> <span style="font-size:.7rem;color:var(--neo-text-sub);">← '+_escSK(r.fieldKey)+'</span></div>'; }).join('') || '<div style="color:var(--neo-text-muted);font-size:.75rem;">Belum ada. Klik "Sinkronkan" di Kelola Placeholder.</div>';
+    _skOpenDialog('skPhView', '<div class="neo-swal-popup neo-dialog-card sk-mid"><div class="neo-swal-inner" style="align-items:stretch;"><div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-braces"></i></div><div class="neo-swal-title">Placeholder: '+_escSK(nama)+'</div><div class="neo-swal-text" style="font-size:0.72rem;">Gunakan {{KEY}} ini di template jenis ini.</div><div style="max-height:300px;overflow-y:auto;">'+list+'</div></div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skPhView\')">Tutup</button></div></div>', 10000);
+  });
+}
+
+/* ================= FIELD MANDIRI (INSTAN dari cache jenis) ================= */
+function openModalFieldJenis(idJenis,namaJenis){
+  UIHelper.callApi('apiGetSchemaJenisKeluar', [{idJenis:idJenis}], function(f){ _renderFieldJenis(idJenis,namaJenis,Array.isArray(f)?f:[]); }, function(e){ UIHelper.showToast('Gagal: '+e,false); });
+}
+function _renderFieldJenis(idJenis,namaJenis,fields){
+  var list=fields.map(function(f){ return '<div class="autofill-item d-flex justify-content-between align-items-center"><span style="font-size:.75rem;"><b>'+_escSK(f.label)+'</b> · '+_escSK(f.tipe)+' · {{'+_escSK(f.field_key)+'}}</span><button type="button" class="schedule-remove-btn" onclick="skHapusField(\''+_escSK(f.id_field)+'\',\''+_escSK(idJenis)+'\',\''+_escSK(namaJenis)+'\')"><i class="bi bi-x"></i></button></div>'; }).join('') || '<div style="color:var(--neo-text-muted);font-size:.75rem;">Belum ada field.</div>';
+  _skOpenDialog('skField', '<div class="neo-swal-popup neo-dialog-card sk-mid"><div class="neo-swal-inner" style="align-items:stretch;"><div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-ui-radios"></i></div><div class="neo-swal-title">Field Form Mandiri: '+_escSK(namaJenis)+'</div><div class="neo-swal-text" style="font-size:0.72rem;">Hanya untuk surat MANDIRI. Balasan mengambil dari Surat Masuk.</div><div style="max-height:200px;overflow-y:auto;margin-bottom:12px;">'+list+'</div><div class="row g-2"><div class="col-md-6"><label class="form-label">Label</label><input id="fjLabel" class="form-control"></div><div class="col-md-3"><label class="form-label">Tipe</label>'+neoSelectHtml('NS_fjTipe',[{value:"text",label:"Teks"},{value:"number",label:"Angka"},{value:"textarea",label:"Textarea"},{value:"select",label:"Pilihan"},{value:"repeater",label:"Daftar"}],'text','Tipe')+'</div><div class="col-md-3"><label class="form-label">Sumber</label>'+neoSelectHtml('NS_fjSumber',[{value:"",label:"—"},{value:"master_orang",label:"Master Orang"},{value:"master_aset:tempat",label:"Tempat"},{value:"master_aset:barang",label:"Barang"}],'','Sumber')+'</div><div class="col-12"><label class="form-label">Opsi/Kolom (koma)</label><input id="fjOpsi" class="form-control"></div></div></div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skField\')">Tutup</button><button type="button" class="neo-btn-confirm" onclick="skSimpanField(\''+_escSK(idJenis)+'\',\''+_escSK(namaJenis)+'\')"><i class="bi bi-plus-lg me-1"></i> Tambah Field</button></div></div>', 10000);
+}
+function skSimpanField(idJenis,namaJenis){ var label=document.getElementById('fjLabel').value.trim(); if(!label){UIHelper.showToast('Label wajib diisi.',false);return;} Loader.show('Menyimpan field...'); UIHelper.callApi('apiSimpanFieldJenisKeluar',[{idJenis:idJenis,label:label,tipe:neoSelValue('NS_fjTipe')||'text',sumberData:neoSelValue('NS_fjSumber')||'',opsi:document.getElementById('fjOpsi').value.trim(),required:false}],function(r){Loader.hide();_lcInvalidate();UIHelper.showToast(r.message||'Tersimpan.',true);_skCloseDialog('skField');openModalFieldJenis(idJenis,namaJenis);},function(e){Loader.hide();UIHelper.showToast('Gagal: '+e,false);}); }
+function skHapusField(idField,idJenis,namaJenis){ Loader.show('Menghapus field...'); UIHelper.callApi('apiHapusFieldJenisKeluar',[{idField:idField}],function(r){Loader.hide();_lcInvalidate();UIHelper.showToast(r.message||'Dihapus.',true);_skCloseDialog('skField');openModalFieldJenis(idJenis,namaJenis);},function(e){Loader.hide();UIHelper.showToast('Gagal: '+e,false);}); }
+
+/* ================= KELOLA PLACEHOLDER (+ sync) (INSTAN) ================= */
+var _availableFieldKeys=[];
+function openModalKelolaPlaceholder(){
+  _lcGet('placeholder', 'apiGetDaftarPlaceholder', function(rows){
+    _lcGet('fieldKeys', 'apiGetAvailableFieldKeys', function(keys){
+      _availableFieldKeys=Array.isArray(keys)?keys:[];
+      _renderModalKelolaPlaceholder(rows||[]);
+    });
+  });
+}
+function _fkDatalist(){ return '<datalist id="fkOptions">'+_availableFieldKeys.map(function(k){return '<option value="'+k.key+'">'+k.label+'</option>';}).join('')+'</datalist>'; }
+function _phRow(p){ p=p||{}; return '<div class="ph-row" style="display:grid;grid-template-columns:1fr 1fr 1.2fr .8fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(163,177,198,.15);"><input type="text" class="form-control ph-key" value="'+_escSK(p.key||'')+'" placeholder="{{KEY}}"><input type="text" class="form-control ph-label" value="'+_escSK(p.label||'')+'" placeholder="Label"><input type="text" class="form-control ph-fieldkey" list="fkOptions" value="'+_escSK(p.fieldKey||'')+'" placeholder="Pilih fieldKey"><input type="text" class="form-control ph-contoh" value="'+_escSK(p.contoh||'')+'" placeholder="Contoh"><button type="button" class="schedule-remove-btn" onclick="hapusPlaceholderRow(this)"><i class="bi bi-x"></i></button></div>'; }
+function _renderModalKelolaPlaceholder(rows){
+  _skOpenDialog('skPlaceholder', '<div class="neo-swal-popup neo-dialog-card sk-wide"><div class="neo-swal-inner" style="align-items:stretch;"><div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-braces"></i></div><div class="neo-swal-title">Kelola Placeholder Surat</div><div class="neo-swal-text" style="font-size:0.72rem;margin-bottom:10px;">Klik "Sinkronkan" untuk auto-buat dari semua kolom. Edit/hapus bebas.</div>'+_fkDatalist()+'<div style="display:grid;grid-template-columns:1fr 1fr 1.2fr .8fr auto;gap:8px;font-size:0.68rem;font-weight:800;color:var(--neo-text-sub);text-transform:uppercase;"><span>Key</span><span>Label</span><span>FieldKey</span><span>Contoh</span><span></span></div><div id="phBody" style="max-height:340px;overflow-y:auto;">'+(rows.length?rows.map(_phRow).join(''):_phRow())+'</div><button type="button" class="dsc-btn-primary" style="margin-top:10px;margin-bottom:0;" onclick="tambahPlaceholderRow()"><i class="bi bi-plus-lg me-1"></i> Tambah Placeholder</button></div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skPlaceholder\')">Tutup</button><button type="button" class="neo-btn-confirm" onclick="syncPlaceholdersUI()"><i class="bi bi-arrow-repeat me-1"></i> Sinkronkan</button><button type="button" class="neo-btn-confirm" onclick="simpanSemuaPlaceholder()"><i class="bi bi-save me-1"></i> Simpan</button></div></div>', 9999);
+}
+function syncPlaceholdersUI(){ Loader.show('Menyinkronkan...'); UIHelper.callApi('apiSyncPlaceholders', [], function(res){ Loader.hide(); _lcInvalidate(); UIHelper.showToast(res.message,true); _skCloseDialog('skPlaceholder'); openModalKelolaPlaceholder(); }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: '+e,false); }); }
+function tambahPlaceholderRow(){ document.getElementById('phBody').insertAdjacentHTML('beforeend', _phRow()); }
+function hapusPlaceholderRow(btn){ var row=btn.closest('.ph-row'); var key=row.querySelector('.ph-key').value.trim(); if(key) UIHelper.callApi('apiHapusPlaceholder',[{key:key}],function(){},function(){}); row.remove(); }
+function simpanSemuaPlaceholder(){ var rows=document.querySelectorAll('#phBody .ph-row'); var toSave=[]; rows.forEach(function(r){ var key=r.querySelector('.ph-key').value.trim(); var fk=r.querySelector('.ph-fieldkey').value.trim(); if(key&&fk) toSave.push({key:key,label:r.querySelector('.ph-label').value.trim(),fieldKey:fk,contoh:r.querySelector('.ph-contoh').value.trim()}); }); if(!toSave.length){UIHelper.showToast('Isi minimal satu placeholder.',false);return;} Loader.show('Menyimpan placeholder...'); var done=0; toSave.forEach(function(row){ UIHelper.callApi('apiSimpanPlaceholder',[{row:row}],function(){done++; if(done===toSave.length){Loader.hide();_lcInvalidate();UIHelper.showToast('Placeholder tersimpan.',true);}},function(e){done++;Loader.hide();UIHelper.showToast('Gagal: '+e,false);}); }); }
+
+/* ================= PATCH KATEGORI ================= */
+(function(){
+  var inp=document.getElementById('katBalasan');
+  if (inp && !document.getElementById('katBalasanWrap')) { inp.type='hidden'; var w=document.createElement('div'); w.id='katBalasanWrap'; inp.parentNode.appendChild(w); }
+  function renderKatBalasan(){
+    var pakai = function(arr){
+      var cur=document.getElementById('katBalasan').value;
+      var m=arr.find(function(j){return j.id===cur||j.nama===cur;});
+      var w=document.getElementById('katBalasanWrap'); if(!w)return;
+      w.innerHTML=neoSelectHtml('NS_katBalasan', arr.map(function(j){return {value:j.id,label:j.nama};}), m?m.id:'', '— tanpa balasan default —');
+      _neoSelCb['NS_katBalasan']=function(v){document.getElementById('katBalasan').value=v;};
+      if(m)document.getElementById('katBalasan').value=m.id;
+    };
+    if (_skJenisCache && _skJenisCache.length) { pakai(_skJenisCache); return; }
+    UIHelper.callApi('apiGetDaftarJenisKeluar', [], function(list){ pakai(Array.isArray(list)?list:[]); }, function(){});
+  }
+  if (typeof editKategori==='function'){ var oe=editKategori; editKategori=function(id){ oe(id); renderKatBalasan(); }; }
+  if (typeof newKategori==='function'){ var on=newKategori; newKategori=function(){ on(); renderKatBalasan(); }; }
+})();
+</script>
+
+
+<script>
+/* ============ PATCH FINAL: paksa scroll modal ============ */
+(function(){
+  if (window.__skScrollPatched) return; window.__skScrollPatched = true;
+  var origOpen = _skOpenDialog;
+  _skOpenDialog = function(key, html, zIndex){
+    var ov = origOpen(key, html, zIndex);
+    try {
+      var card = ov.querySelector('.neo-swal-popup');
+      var inner = card && card.querySelector('.neo-swal-inner');
+      var actions = card && card.querySelector('.neo-dialog-actions');
+      if (card && inner) {
+        var hintEl = card.querySelector('.neo-scroll-hint');
+        if (!hintEl) {
+          hintEl = document.createElement('div');
+          hintEl.className = 'neo-scroll-hint';
+          hintEl.innerHTML = '<i class="bi bi-chevron-down"></i> scroll';
+          card.appendChild(hintEl);
+        }
+        hintEl.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);bottom:70px;display:none;align-items:center;gap:5px;width:max-content;font-size:0.66rem;font-weight:800;color:#667eea;background:#eef1f6;box-shadow:4px 4px 10px rgba(163,177,198,.5);padding:4px 13px;border-radius:99px;z-index:7;pointer-events:none;letter-spacing:.3px;';
+        card.style.setProperty('position','relative','important');
+
+        var apply = function(){
+          var ah = actions ? actions.offsetHeight : 56;
+          var maxCard = Math.max(320, window.innerHeight - 48);
+          var maxInner = Math.max(200, maxCard - ah - 8);
+          card.style.setProperty('max-height', maxCard + 'px', 'important');
+          inner.style.setProperty('max-height', maxInner + 'px', 'important');
+          inner.style.setProperty('overflow-y', 'scroll', 'important');
+        };
+        apply(); setTimeout(apply, 120); setTimeout(apply, 600);
+        window.addEventListener('resize', apply);
+
+        var upd = function(){
+          var scrollable = inner.scrollHeight - inner.clientHeight > 4;
+          var atBottom = inner.scrollTop + inner.clientHeight >= inner.scrollHeight - 6;
+          hintEl.style.display = (scrollable && !atBottom) ? 'inline-flex' : 'none';
+        };
+        inner.addEventListener('scroll', upd, { passive:true });
+        setTimeout(upd, 200); setTimeout(upd, 700);
+        try { new MutationObserver(upd).observe(inner, { childList:true, subtree:true }); } catch(e){}
+      }
+    } catch(e) { console.error('[skScrollPatch]', e); }
+    return ov;
+  };
+})();
+</script>
+
+
+<script>
+/* ============ KELOLA TEMPLATE DISPOSISI PER KATEGORI ============ */
+function openModalKelolaTemplateDisposisi(){
+  _lcGet('tplDisp', 'apiGetTemplateDisposisiList', function(rows){
+    _renderKelolaTemplateDisposisi(Array.isArray(rows)?rows:[]);
+  });
+}
+function _renderKelolaTemplateDisposisi(rows){
+  var map={}; rows.forEach(function(r){ map[String(r.kategori_id)]=r; });
+  var rowHtml = function(kid, label, val){
+    var link = val ? (String(val).indexOf('http')===0 ? val : 'https://docs.google.com/document/d/'+val) : '';
+    return '<div class="jk-row" data-kat="'+_escSK(kid)+'" style="grid-template-columns:1.2fr 1.6fr auto;">' +
+      '<div style="font-size:.78rem;font-weight:700;color:var(--neo-text-heading);">'+_escSK(label)+'</div>' +
+      '<input type="text" class="form-control td-doc" value="'+_escSK(val)+'" placeholder="Tempel ID / URL Google Doc...">' +
+      '<div class="d-flex gap-1" style="justify-content:flex-end;">'+
+        (link ? '<a class="btn-picker" target="_blank" href="'+_escSK(link)+'" title="Buka template"><i class="bi bi-box-arrow-up-right"></i></a>' : '')+
+        '<button type="button" class="schedule-remove-btn" title="Kosongkan" onclick="this.closest(\'.jk-row\').querySelector(\'.td-doc\').value=\'\'"><i class="bi bi-eraser"></i></button>'+
+      '</div></div>';
+  };
+  var html = rowHtml('default','(DEFAULT) Semua kategori', map['default'] ? (map['default'].doc_id||'') : '');
+  (kategoriList||[]).forEach(function(k){ html += rowHtml(k.id, k.nama, map[k.id] ? (map[k.id].doc_id||'') : ''); });
+  _skOpenDialog('skTplDisp', '<div class="neo-swal-popup neo-dialog-card sk-wide"><div class="neo-swal-inner" style="align-items:stretch;">' +
+    '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-file-earmark-word"></i></div>' +
+    '<div class="neo-swal-title">Kelola Template Disposisi per Kategori</div>' +
+    '<div class="neo-swal-text" style="font-size:0.72rem;margin-bottom:10px;">Isi ID/URL Google Doc per kategori. Di doc gunakan placeholder dari <b>Kelola Placeholder</b> — mis. {{PERIHAL}}, {{PENGIRIM}}, {{DESKRIPSI}}, {{PEMOHON}}. Kategori kosong memakai DEFAULT.</div>' +
+    '<div style="display:grid;grid-template-columns:1.2fr 1.6fr auto;gap:10px;font-size:0.68rem;font-weight:800;color:var(--neo-text-sub);text-transform:uppercase;"><span>Kategori</span><span>Template Doc</span><span>Aksi</span></div>' +
+    '<div id="tdBody" style="max-height:380px;overflow-y:auto;">'+html+'</div>' +
+  '</div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skTplDisp\')">Tutup</button><button type="button" class="neo-btn-confirm" onclick="tdSaveAll()"><i class="bi bi-save me-1"></i> Simpan Semua</button></div></div>', 9999);
+}
+function tdSaveAll(){
+  var rows = document.querySelectorAll('#tdBody .jk-row');
+  var tasks=[];
+  rows.forEach(function(r){ tasks.push({ kid:r.getAttribute('data-kat'), doc:r.querySelector('.td-doc').value.trim() }); });
+  if(!tasks.length) return;
+  Loader.show('Menyimpan template disposisi...');
+  var done=0;
+  var finish=function(){ done++; if(done===tasks.length){ Loader.hide(); _lcInvalidate(); UIHelper.showToast('Template disposisi tersimpan.',true); _skCloseDialog('skTplDisp'); } };
+  tasks.forEach(function(t){
+    if (t.doc) UIHelper.callApi('apiSimpanTemplateDisposisiDoc',[{kategoriId:t.kid, docId:t.doc, namaTemplate:t.kid}], finish, finish);
+    else UIHelper.callApi('apiHapusTemplateDisposisiDoc',[{kategoriId:t.kid}], finish, finish);
+  });
+}
+</script>
+
+<script>
+/* ============ ARSIP SURAT KELUAR — RENDERER PASTI ============ */
+var skFilterStatus = (typeof skFilterStatus !== 'undefined') ? skFilterStatus : 'ALL';
+var _skScanTargetId = null;
+
+function setSkFilter(v){ skFilterStatus = v; renderSuratKeluarList(); }
+function onSkSearch(){ renderSuratKeluarList(); }
+
+function _skAsal(r){ return (r.asal === 'BALASAN' || r.idSuratInduk) ? 'BALASAN' : 'MANDIRI'; }
+function _skIsFinal(r){ return String(r.status).toUpperCase() === 'FINAL'; }
+
+function renderSuratKeluarList() {
+  var wrap = document.getElementById('skListWrap');
+  if (!wrap) return;
+  var data = (typeof rawDataSuratKeluar !== 'undefined' && rawDataSuratKeluar) ? rawDataSuratKeluar : [];
+
+  var q = ((document.getElementById('skSearchInput') || {}).value || '').toLowerCase().trim();
+  var searched = q ? data.filter(function(r){
+    return (r.nomorKeluar||'').toLowerCase().includes(q) ||
+           (r.perihal||'').toLowerCase().includes(q) ||
+           (r.tujuan||'').toLowerCase().includes(q) ||
+           (r.jenis_nama||'').toLowerCase().includes(q);
+  }) : data;
+
+  var cAll = searched.length, cBalasan = 0, cMandiri = 0;
+  searched.forEach(function(r){ if (_skAsal(r) === 'BALASAN') cBalasan++; else cMandiri++; });
+  var set = function(id, v){ var e = document.getElementById(id); if (e) e.innerText = v; };
+  set('sksegCount-ALL', cAll); set('sksegCount-BALASAN', cBalasan); set('sksegCount-MANDIRI', cMandiri);
+  ['ALL','BALASAN','MANDIRI'].forEach(function(v){
+    var b = document.getElementById('skseg-' + v);
+    if (b) b.classList.toggle('active', v === skFilterStatus);
+  });
+
+  var list = searched.filter(function(r){
+    if (skFilterStatus === 'ALL') return true;
+    return _skAsal(r) === skFilterStatus;
+  });
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="sk-empty"><i class="bi bi-envelope-paper"></i>Belum ada surat keluar.</div>';
+    return;
+  }
+
+  wrap.innerHTML = list.map(function(r){
+    var id = r.idKeluar;
+    var asal = _skAsal(r);
+    var isFinal = _skIsFinal(r);
+    var asalChip = asal === 'BALASAN'
+      ? '<span class="sk-chip-asal sk-chip-balasan">Balasan</span>'
+      : '<span class="sk-chip-asal sk-chip-mandiri">Mandiri</span>';
+    var statusChip = isFinal
+      ? '<span class="chip-soft chip-active">FINAL ✔</span>'
+      : '<span class="chip-soft chip-accent">Tercatat</span>';
+
+    var docBtn = r.urlDokumen
+      ? '<a class="dsc-btn-action" title="Buka Dokumen" target="_blank" href="' + esc(r.urlDokumen) + '"><i class="bi bi-file-earmark-text"></i></a>'
+      : '<span class="dsc-btn-action" style="opacity:.35;" title="Dokumen belum dibuat"><i class="bi bi-file-earmark-text"></i></span>';
+
+    var scanBtn = (!isFinal)
+      ? '<button class="dsc-btn-action" title="Upload Scan → FINAL" onclick="skPickScan(\'' + esc(id) + '\')"><i class="bi bi-upload"></i></button>'
+      : (r.urlScan
+          ? '<a class="dsc-btn-action" title="Lihat Scan" target="_blank" href="' + esc(r.urlScan) + '"><i class="bi bi-paperclip"></i></a>'
+          : '');
+
+    var indukLink = (asal === 'BALASAN' && r.idSuratInduk)
+      ? '<button class="sk-link-induk" onclick="skGoInduk(\'' + esc(r.idSuratInduk) + '\')"><i class="bi bi-arrow-return-left"></i> Lihat Induk</button>'
+      : '';
+
+    var tgl = r.tglKeluar ? _shortDate(r.tglKeluar) : '-';
+    var nomorTampil = (r.nomorKeluar||'-').length > 14 ? (r.nomorKeluar.substring(0,12)+'…') : (r.nomorKeluar||'-');
+
+    return '' +
+    '<div class="sk-card">' +
+      '<div class="sk-inner">' +
+        '<div class="sk-row1">' +
+          '<span class="sm-agenda-pill sk-agenda">' + esc(nomorTampil) + '</span>' +
+          '<div class="sk-body">' +
+            '<div class="sk-perihal">' + esc(r.perihal || '(tanpa perihal)') + '</div>' +
+            '<div class="sk-meta"><i class="bi bi-building me-1"></i>' + esc(r.tujuan || '-') +
+              (r.jenis_nama ? ' · ' + esc(r.jenis_nama) : '') + ' · <i class="bi bi-calendar3 me-1"></i>' + esc(tgl) + '</div>' +
+          '</div>' +
+          '<div class="sk-badges">' + asalChip + statusChip + '</div>' +
+          '<div class="sk-actions">' + indukLink + docBtn + scanBtn + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function skPickScan(id){
+  _skScanTargetId = id;
+  var inp = document.getElementById('skScanFile');
+  if (inp){ inp.value = ''; inp.click(); }
+}
+function onSkScanPicked(ev){
+  var file = ev.target.files && ev.target.files[0];
+  if (!file || !_skScanTargetId) return;
+  Loader.show('Mengunggah scan & menandai FINAL...');
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var payload = { id: _skScanTargetId, fileScan: { base64: e.target.result, fileName: file.name, mimeType: file.type }, user: currentUser };
+    UIHelper.callApi('apiUpdateFinalSuratKeluar', [payload], function(res){
+      Loader.hide();
+      UIHelper.showToast((res && res.message) || 'Scan tersimpan & status FINAL.', true);
+      if (typeof skReload === 'function') skReload(); else if (typeof refreshCoreData === 'function') refreshCoreData();
+    }, function(err){ Loader.hide(); UIHelper.showToast('Gagal: ' + err, false); });
+  };
+  reader.readAsDataURL(file);
+}
+
+function skGoInduk(idSuratMasuk){
+  if (typeof switchPage === 'function') switchPage('page-surat-masuk');
+  setTimeout(function(){ if (typeof openModalDetailSurat === 'function') openModalDetailSurat(idSuratMasuk); }, 250);
+}
+</script>
+
+
+<script>
+/* ============ SK RELOAD v2 ============ */
+(function(){
+  window.skReload = function(cb){
+    var done = function(d){
+      rawDataSuratKeluar = Array.isArray(d) ? d : (d && Array.isArray(d.data) ? d.data : []);
+      if (typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
+      if (cb) cb();
+    };
+    UIHelper.callApi('apiGetDaftarSuratKeluar', [], done, function(err1){
+      UIHelper.callApi('apiGetSuratKeluar', [], done, function(err2){
+        rawDataSuratKeluar = [];
+        if (typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
+        UIHelper.showToast('Gagal memuat arsip: ' + err2, false);
+        if (cb) cb();
+      });
+    });
+  };
+  window.skReload();
+})();
+</script>
+
+<script>
+/* ============ Konfirmasi: buat ulang balasan (SAFE) ============ */
+(function(){
+  if (window.__submitSKConfirm) return;
+
+  /* PATCHED: tunggu submitSuratKeluar tersedia */
+  window._whenReady('submitSuratKeluar', function(origSubmit){
+    window.__submitSKConfirm = true;
+    window.submitSuratKeluar = function(){
+      var elA = document.getElementById('skAsal'), elI = document.getElementById('skIdSuratInduk');
+      var asal = elA ? elA.value : '', induk = elI ? elI.value : '';
+      if (asal === 'BALASAN' && induk) {
+        var ex = null, list = (typeof rawDataSuratKeluar !== 'undefined' && rawDataSuratKeluar) ? rawDataSuratKeluar : [];
+        for (var i=0;i<list.length;i++) if (String(list[i].idSuratInduk) === String(induk)) { ex = list[i]; break; }
+        if (ex) {
+          Swal.fire({
+            title: 'Sudah ada balasan untuk surat ini',
+            html: 'Status lama: <b>' + (ex.status || '-') + '</b>.<br>Membuat lagi akan <b>MENGGANTIKAN</b> catatan lama.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'Ya, Gantikan', cancelButtonText: 'Batal'
+          }).then(function(r){ if (r.isConfirmed) { try { origSubmit.apply(this, arguments); } catch(e){} } }.bind(this));
+          return;
+        }
+      }
+      try { origSubmit.apply(this, arguments); } catch(e){ console.warn('[submitSuratKeluar confirm]', e); }
+    };
+  });
+})();
+</script>
+
+<script>
+/* ============ BATCH 1: scan-btn, row-click, refresh (SAFE) ============ */
+(function(){
+  if (window.__batch1) return;
+
+  function smEnhance(){
+    var wells = document.querySelectorAll('.sm-well');
+    for (var wI = 0; wI < wells.length; wI++) {
+      var w = wells[wI];
+      var btn = w.querySelector('[onclick*="openModalDetailSurat"]');
+      if (!btn) continue;
+      var m = btn.getAttribute('onclick').match(/openModalDetailSurat\('([^']+)'\)/);
+      if (!m) continue;
+      var id = m[1];
+      var s = null;
+      for (var i = 0; i < (rawDataSurat || []).length; i++) if (rawDataSurat[i].idSurat === id) { s = rawDataSurat[i]; break; }
+
+      var grp = w.querySelector('.action-btn-group');
+      if (grp && s && s.urlScan && !grp.querySelector('.sm-scan-btn')) {
+        grp.insertAdjacentHTML('afterbegin',
+          '<a class="dsc-btn-action sm-scan-btn" title="Lihat Scan Surat" target="_blank" href="' + s.urlScan + '"><i class="bi bi-paperclip"></i></a>');
+      }
+
+      var main = w.querySelector('.sm-main');
+      if (main) {
+        main.setAttribute('data-sk-id', id);
+        main.style.cursor = 'pointer';
+        if (!main.__rowClick) {
+          main.__rowClick = true;
+          main.addEventListener('click', function(e){
+            if (e.target.closest('button, a, input, select, textarea')) return;
+            openModalDetailSurat(this.getAttribute('data-sk-id'));
+          });
+        }
+      }
+    }
+  }
+
+  function skAddRefresh(){
+    var act = document.querySelector('#skToolbar .sm-actions');
+    if (act && !act.querySelector('.sk-refresh-btn')) {
+      act.insertAdjacentHTML('afterbegin',
+        '<button type="button" class="sm-btn-subtle sk-refresh-btn" onclick="skReload()"><i class="bi bi-arrow-clockwise"></i> Segarkan</button>');
+    }
+  }
+  setTimeout(skAddRefresh, 300);
+
+  /* PATCHED: tunggu renderSuratTable tersedia */
+  window._whenReady('renderSuratTable', function(origRender){
+    if (window.__batch1) return;
+    window.__batch1 = true;
+    window.renderSuratTable = function(){
+      var r;
+      try { r = origRender.apply(this, arguments); } catch(e){ console.warn('[Batch1 renderSuratTable]', e); }
+      setTimeout(smEnhance, 60);
+      return r;
+    };
+    setTimeout(smEnhance, 400);
+  });
+})();
+</script>
+
+
+<script>
+/* ============ BATCH 1 (A2+A5): form keputusan ramping (SAFE) ============ */
+(function(){
+  if (window.__batch1b) return;
+
+  function _kepPerluFrom(r){
+    if (!r) return null;
+    if (r.perluBalasan === true || r.perluBalasan === 'Y' || r.perluBalasan === 'Ya' || r.perluBalasan === 'TRUE') return true;
+    if (r.perluBalasan === false || r.perluBalasan === 'T' || r.perluBalasan === 'FALSE') return false;
+    var c = String(r.catatan || '').toLowerCase();
+    if (c.indexOf('tidak perlu balasan') !== -1) return false;
+    if (c.indexOf('perlu balasan') !== -1) return true;
+    return null;
+  }
+
+  /* PATCHED: tunggu renderEkspedisiInline tersedia */
+  window._whenReady('renderEkspedisiInline', function(origExp){
+    if (window.__batch1b) return;
+    window.__batch1b = true;
+
+    window.renderEkspedisiInline = function (riwayat) {
+      var r;
+      try { r = origExp.apply(this, arguments); } catch(e){ console.warn('[batch1b renderEkspedisiInline]', e); }
+
+      window.__expRiwayat = riwayat || [];
+      var s = rawDataSurat.find(function (x) { return x.idSurat === currentEkspedisiId; });
+      var tEl = document.getElementById('ekspedisiTitle');
+      if (tEl) tEl.innerHTML = '<i class="bi bi-box-seam" style="color:var(--neo-accent);"></i> Ekspedisi: ' + UIHelper.escapeHtml(s ? s.agendaNomor + ' — ' + s.perihal : currentEkspedisiId);
+
+      var done = {}; (riwayat || []).forEach(function (r) { done[r.tahap] = r; });
+      var batalNow = (s && s.status === 'BATAL') || (!!done['dibatalkan'] && !done['diaktifkan_kembali']);
+
+      var tl = document.getElementById('ekspedisiTimeline');
+      if (tl) {
+        tl.innerHTML = TAHAP_ORDER.map(function (t, i) {
+          if ((t === 'balasan' || t === 'diterima') && done['selesai_tanpa_balasan']) return '';
+          if (t === 'selesai_tanpa_balasan' && (done['balasan'] || done['diterima'])) return '';
+          var r = done[t], last = i === TAHAP_ORDER.length - 1;
+          return '<div class="tl-item ' + (r ? '' : 'future') + '">' + (last ? '' : '<div class="tl-line"></div>') +
+            '<div class="tl-dot"></div><div><div class="tl-judul">' + (TAHAP_LABEL[t] || t) + '</div>' +
+            '<div class="tl-meta">' + (r ? (r.timestamp + ' · ' + r.aktor + (r.catatan ? ' — ' + r.catatan : '')) : 'menunggu') + '</div></div></div>';
+        }).join('');
+      }
+
+      var act = '';
+      if (batalNow) {
+        var rb = (riwayat || []).filter(function (r) { return r.tahap === 'dibatalkan'; })[0];
+        act = '<div class="wizard-step"><div class="wizard-step-title" style="color:var(--neo-status-inactive);"><i class="bi bi-x-octagon-fill"></i> Dibatalkan</div>' +
+          '<div style="font-size:.8rem; color:var(--neo-text-sub); font-weight:600;">' + (rb ? UIHelper.escapeHtml(rb.timestamp + ' · ' + rb.aktor + (rb.catatan ? ' — ' + rb.catatan : '')) : 'Tanpa catatan.') + '</div>' +
+          '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiAktifkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-arrow-counterclockwise"></i> Aktifkan Kembali</button></div></div>';
+      } else if (done['selesai_tanpa_balasan'] || done['diterima']) {
+        act += '<span class="badge-status active">Ekspedisi selesai ✔</span>';
+        act += '<div class="text-end mt-2"><button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-status-inactive);" onclick="openDialogBatalkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-x-octagon"></i> Batalkan Kegiatan</button></div>';
+      } else {
+        if (!done['tercetak']) act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiTercetak()"><i class="bi bi-printer"></i> Tandai Tercetak & Diserahkan</button>';
+
+        var showKepForm = (done['tercetak'] && !done['keputusan']) || window.__editKeputusan;
+        if (showKepForm) {
+          act += '<div class="wizard-step"><div class="wizard-step-title"><i class="bi bi-pencil-square"></i> ' + (window.__editKeputusan ? 'Edit Keputusan Pimpinan' : 'Catat Keputusan Pimpinan') + '</div>' +
+            '<textarea id="kepText" class="form-control" rows="2" placeholder="Instruksi pimpinan..."></textarea>' +
+            '<div class="row g-2 mt-1">' +
+            '<div class="col-12" style="font-size:.72rem; font-weight:700; color:var(--neo-text-sub); text-transform:uppercase; margin-bottom:4px;">Apakah perlu surat balasan? <span style="color:var(--neo-status-inactive);">*</span></div>' +
+            '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluY" value="Y"><label class="form-check-label" for="kepPerluY" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-status-active);"><i class="bi bi-check-circle-fill me-1"></i> Ya, perlu balasan</label></div></div>' +
+            '<div class="col-md-6"><div class="switch-card"><input class="form-check-input" type="radio" name="kepPerluBalasan" id="kepPerluT" value="T"><label class="form-check-label" for="kepPerluT" style="font-size:.8rem; font-weight:700; margin:0; color:var(--neo-text-sub);"><i class="bi bi-x-circle me-1"></i> Tidak perlu</label></div></div>' +
+            '</div>' +
+            '<div class="text-end mt-2"><button class="dsc-btn-primary" style="margin-bottom:0;" onclick="submitKeputusan()"><i class="bi bi-save"></i> Simpan Keputusan</button>' +
+            (window.__editKeputusan ? ' <button class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem;" onclick="batalEditKeputusan()"><i class="bi bi-x"></i> Batal Edit</button>' : '') +
+            '</div></div>';
+        }
+
+        if (done['keputusan'] && !done['selesai_tanpa_balasan']) {
+          if (!window.__editKeputusan) {
+            act += '<button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-accent);" onclick="editKeputusanDisp()"><i class="bi bi-pencil"></i> Edit Keputusan</button>';
+          }
+          var perlu2 = _kepPerluFrom(done['keputusan']);
+          if (perlu2) {
+            act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="openModalSuratKeluar(\'BALASAN\', \'' + currentEkspedisiId + '\')">' +
+              (done['balasan'] ? '<i class="bi bi-arrow-repeat"></i> Ulangi / Perbarui Surat Balasan' : '<i class="bi bi-send-plus"></i> Buat Surat Balasan') + '</button>';
+            if (done['balasan'] && !done['diterima']) {
+              act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
+            }
+          } else if (perlu2 === false) {
+            if (!done['diterima']) act += '<button class="dsc-btn-primary" style="margin-bottom:0;" onclick="aksiDiterima()"><i class="bi bi-check2-circle"></i> Tandai Diterima Pemohon (Selesai)</button>';
+          }
+        }
+        act += '<div class="text-end mt-2"><button type="button" class="btn-guest-action" style="padding:8px 16px; border-radius:999px; font-size:.75rem; color:var(--neo-status-inactive);" onclick="openDialogBatalkan(\'' + currentEkspedisiId + '\')"><i class="bi bi-x-octagon"></i> Batalkan Kegiatan</button></div>';
+      }
+      var aEl = document.getElementById('ekspedisiAction');
+      if (aEl) aEl.innerHTML = act;
+
+      setTimeout(function () {
+        var pf = window.__kepPrefill;
+        var t = document.getElementById('kepText');
+        if (t && pf && pf.teks) t.value = pf.teks;
+        if (pf && pf.perlu) { var r = document.getElementById(pf.perlu === 'Y' ? 'kepPerluY' : 'kepPerluT'); if (r) r.checked = true; }
+      }, 60);
+
+      return r;
+    };
+  });
+
+  window.submitKeputusan = function () {
+    var radios = document.querySelectorAll('input[name="kepPerluBalasan"]');
+    var selected = null;
+    radios.forEach(function (r) { if (r.checked) selected = r.value; });
+    if (!selected) { UIHelper.showToast('Pilih dulu: apakah perlu balasan atau tidak?', false); return; }
+    var perluBalasan = selected === 'Y';
+    Loader.show('Menyimpan keputusan...');
+    UIHelper.callApi('apiCatatKeputusanDisposisi', [{
+      idSurat: currentEkspedisiId,
+      keputusan: (document.getElementById('kepText') || {}).value || '',
+      perluBalasan: perluBalasan,
+      jenisBalasan: '',
+      tenggat: '',
+      user: currentUser
+    }], function (r) {
+      Loader.hide();
+      UIHelper.showToast(r.message || 'Keputusan tersimpan.', true);
+      window.__editKeputusan = false; window.__kepPrefill = null;
+      _refreshEkspedisi();
+    }, function (e) { Loader.hide(); UIHelper.showToast(e, false); });
+  };
+
+  window.editKeputusanDisp = function () {
+    Loader.show('Memuat keputusan...');
+    UIHelper.callApi('apiGetDisposisiBySurat', [{ idSurat: currentEkspedisiId }], function (rec) {
+      Loader.hide();
+      window.__editKeputusan = true;
+      window.__kepPrefill = {
+        teks: rec ? (rec.keputusan || '') : '',
+        perlu: rec ? (String(rec.perlu_balasan).toUpperCase() === 'TRUE' ? 'Y' : 'T') : null
+      };
+      renderEkspedisiInline(window.__expRiwayat || []);
+    }, function (e) { Loader.hide(); UIHelper.showToast('Gagal: ' + e, false); });
+  };
+  window.batalEditKeputusan = function () {
+    window.__editKeputusan = false; window.__kepPrefill = null;
+    renderEkspedisiInline(window.__expRiwayat || []);
+  };
+})();
+</script>
+
+
+<script>
+/* ============ B7: dialog FINAL (SAFE) ============ */
+(function(){
+  if (window.__b7) return;
+
+  window.skPickScan = function(id){ openFinalDialog(id); };
+
+  function openFinalDialog(idKeluar){
+    _skOpenDialog('skFinal', '<div class="neo-swal-popup neo-dialog-card sk-mid"><div class="neo-swal-inner" style="align-items:stretch;">' +
+      '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-pen-fill"></i></div>' +
+      '<div class="neo-swal-title">Finalisasi — Surat Tertanda</div>' +
+      '<div class="neo-swal-text" style="font-size:0.72rem;">Unggah surat yang sudah ditandatangani, <b>atau</b> isi alasan bila tanpa scan.</div>' +
+      '<label class="form-label">Upload scan (PDF/gambar)</label>' +
+      '<input type="file" id="finFile" accept="image/*,application/pdf" class="form-control">' +
+      '<label class="form-label" style="margin-top:10px;">Alasan (wajib bila tanpa upload)</label>' +
+      '<textarea id="finAlasan" class="form-control" rows="2" placeholder="mis. surat tertanda disimpan fisik di arsip..."></textarea>' +
+    '</div><div class="neo-dialog-actions">' +
+      '<button type="button" class="neo-btn-cancel" onclick="skClose(\'skFinal\')">Batal</button>' +
+      '<button type="button" class="neo-btn-confirm" onclick="submitFinal(\'' + _escSK(idKeluar) + '\')"><i class="bi bi-check2-circle me-1"></i> FINAL-kan</button>' +
+    '</div></div>', 9999);
+  }
+
+  window.submitFinal = function(idKeluar){
+    var f = document.getElementById('finFile');
+    var alasan = (document.getElementById('finAlasan').value || '').trim();
+    var doSend = function(fileScan){
+      Loader.show('Menandai FINAL...');
+      UIHelper.callApi('apiUpdateFinalSuratKeluar', [{ id: idKeluar, fileScan: fileScan, alasan: alasan, user: currentUser }], function(res){
+        Loader.hide(); _skCloseDialog('skFinal');
+        UIHelper.showToast((res && res.message) || 'FINAL.', true);
+        if (typeof skReload === 'function') skReload();
+        if (typeof _refreshEkspedisi === 'function') setTimeout(function(){ _refreshEkspedisi(); }, 400);
+      }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: ' + e, false); });
+    };
+    if (f.files && f.files.length) {
+      var reader = new FileReader();
+      reader.onload = function(e){ doSend({ base64: e.target.result, fileName: f.files[0].name, mimeType: f.files[0].type }); };
+      reader.readAsDataURL(f.files[0]);
+    } else if (alasan) { doSend(null); }
+    else { UIHelper.showToast('Upload scan atau isi alasan dulu.', false); }
+  };
+
+  function expEnhance(){
+    var aEl = document.getElementById('ekspedisiAction');
+    if (!aEl) return;
+    var r = window.__expRiwayat || [];
+    var done = {}; r.forEach(function(x){ done[x.tahap] = x; });
+    if (done['balasan'] && !done['tertanda'] && !aEl.querySelector('.sk-tertanda-btn')) {
+      aEl.insertAdjacentHTML('afterbegin',
+        '<button type="button" class="dsc-btn-primary sk-tertanda-btn" style="margin-bottom:0;" onclick="openFinalFromEkspedisi()"><i class="bi bi-upload"></i> Upload Surat Tertanda (FINAL)</button>');
+    }
+    if (done['selesai_tanpa_balasan']) {
+      var items = document.querySelectorAll('#ekspedisiTimeline .tl-item');
+      for (var i = 0; i < items.length; i++) {
+        var j = items[i].querySelector('.tl-judul');
+        if (j && j.textContent === 'Surat tertanda diunggah') items[i].remove();
+      }
+    }
+  }
+
+  /* PATCHED: tunggu renderEkspedisiInline tersedia */
+  window._whenReady('renderEkspedisiInline', function(origExp){
+    if (window.__b7) return;
+    window.__b7 = true;
+    window.renderEkspedisiInline = function(){
+      var r;
+      try { r = origExp.apply(this, arguments); } catch(e){ console.warn('[B7 renderEkspedisiInline]', e); }
+      setTimeout(expEnhance, 60);
+      return r;
+    };
+  });
+
+  window.openFinalFromEkspedisi = function(){
+    var list = (typeof rawDataSuratKeluar !== 'undefined' && rawDataSuratKeluar) ? rawDataSuratKeluar : [];
+    var rec = null;
+    for (var i = 0; i < list.length; i++) if (String(list[i].idSuratInduk) === String(currentEkspedisiId)) { rec = list[i]; break; }
+    if (!rec) { UIHelper.showToast('Belum ada surat keluar untuk induk ini.', false); return; }
+    openFinalDialog(rec.idKeluar);
+  };
+})();
+</script>
+
+
+<script>
+/* ============ UX BALASAN: satu klik = generate + simpan (SAFE) ============ */
+(function(){
+  if (window.__balasanUx) return;
+
+  function commitSuratKeluar(){
+    var asal = document.getElementById('skAsal').value;
+    var idInduk = document.getElementById('skIdSuratInduk').value;
+    var nomor = document.getElementById('skNomor').value.trim();
+    var jenis = neoSelValue('NS_skJenis');
+    if (!jenis) { UIHelper.showToast('Jenis wajib dipilih.', false); return; }
+    if (!nomor) { UIHelper.showToast('Nomor wajib diisi.', false); document.getElementById('skNomor').focus(); return; }
+    if (!document.getElementById('skPerihal').value.trim()) { UIHelper.showToast('Perihal wajib diisi.', false); return; }
+    var j = null; for (var i = 0; i < _skJenisList.length; i++) if (_skJenisList[i].id === jenis) j = _skJenisList[i];
+
+    var proceed = function(){
+      var doSave = function(urlDokumen){
+        var data = { nomorKeluar: nomor, tglKeluar: document.getElementById('skTanggal').value, jenisKeluar: jenis,
+          perihal: document.getElementById('skPerihal').value.trim(), tujuan: document.getElementById('skTujuan').value.trim(),
+          penandatangan: document.getElementById('skPenandatangan').value.trim(), asal: asal, idSuratInduk: idInduk,
+          urlDokumen: urlDokumen, urlScan: '', status: 'TERCATAT' };
+        if (asal === 'BALASAN' && idInduk) Object.assign(data, skIndukData(idInduk)); else Object.assign(data, skCollectDynamic());
+        Loader.show('Menyimpan surat keluar...');
+        UIHelper.callApi('apiSimpanSuratKeluar', [{ data: data }], function(r){
+          Loader.hide(); UIHelper.showToast(r.message || 'Tersimpan.', true);
+          _skCloseDialog('skForm');
+          if (typeof skReload === 'function') skReload();
+          if (typeof _refreshEkspedisi === 'function') setTimeout(function(){ _refreshEkspedisi(); }, 400);
+        }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: ' + e, false); });
+      };
+      if (j && j.mode === 'TEMPLATE') {
+        Loader.show('Membuat dokumen...');
+        var gd = { jenisKeluar: jenis, nomorKeluar: nomor, perihal: document.getElementById('skPerihal').value.trim(),
+          tujuan: document.getElementById('skTujuan').value.trim(), tglKeluar: document.getElementById('skTanggal').value,
+          penandatangan: document.getElementById('skPenandatangan').value.trim(), pemohon: '' };
+        if (asal === 'BALASAN' && idInduk) { Object.assign(gd, skIndukData(idInduk)); gd.pemohon = gd.pengirim || ''; }
+        else Object.assign(gd, skCollectDynamic());
+        UIHelper.callApi('apiGenerateDokumenKeluar', [{ data: gd, user: currentUser }], function(res){
+          if (res && res.success && res.url) doSave(res.url);
+          else { Loader.hide(); UIHelper.showToast((res && res.message) || 'Gagal membuat dokumen.', false); }
+        }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: ' + e, false); });
+      } else {
+        doSave('');
+      }
+    };
+
+    if (asal === 'BALASAN' && idInduk) {
+      var ex = null, list = (typeof rawDataSuratKeluar !== 'undefined' && rawDataSuratKeluar) ? rawDataSuratKeluar : [];
+      for (var k = 0; k < list.length; k++) if (String(list[k].idSuratInduk) === String(idInduk)) { ex = list[k]; break; }
+      if (ex) {
+        Swal.fire({ title: 'Sudah ada balasan untuk surat ini', html: 'Status lama: <b>' + (ex.status || '-') + '</b>.<br>Melanjutkan akan <b>MENGGANTIKAN</b> catatan lama.',
+          icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Gantikan', cancelButtonText: 'Batal'
+        }).then(function(r){ if (r.isConfirmed) proceed(); });
+        return;
+      }
+    }
+    proceed();
+  }
+
+  function tuneForm(){
+    var d = _skDialogs['skForm'];
+    if (!d) return;
+    var conf = d.querySelector('.neo-dialog-actions .neo-btn-confirm');
+    if (conf) conf.style.display = 'none';
+    var cancel = d.querySelector('.neo-dialog-actions .neo-btn-cancel');
+    if (cancel) cancel.innerHTML = '<i class="bi bi-x me-1"></i> Batal / Tutup';
+  }
+  function tuneLabel(){
+    var j = null, jenis = neoSelValue('NS_skJenis');
+    for (var i = 0; i < _skJenisList.length; i++) if (_skJenisList[i].id === jenis) j = _skJenisList[i];
+    var btn = document.querySelector('#skDocArea button');
+    if (btn) btn.innerHTML = (j && j.mode === 'TEMPLATE')
+      ? '<i class="bi bi-magic me-1"></i> 🚀 Buat Dokumen & Simpan'
+      : '<i class="bi bi-save me-1"></i> 💾 Simpan Catatan';
+  }
+
+  /* PATCHED: tunggu _renderModalSuratKeluar tersedia */
+  window._whenReady('_renderModalSuratKeluar', function(origRenderModal){
+    if (window.__balasanUxRender) return;
+    window.__balasanUxRender = true;
+    window._renderModalSuratKeluar = function(){
+      var r;
+      try { r = origRenderModal.apply(this, arguments); } catch(e){ console.warn('[UX BALASAN _renderModalSuratKeluar]', e); }
+      setTimeout(function(){ tuneForm(); tuneLabel(); }, 60);
+      return r;
+    };
+  });
+
+  /* PATCHED: tunggu skJenisChanged tersedia */
+  window._whenReady('skJenisChanged', function(origJenisChanged){
+    if (window.__balasanUxJenis) return;
+    window.__balasanUxJenis = true;
+    window.skJenisChanged = function(){
+      var r;
+      try { r = origJenisChanged.apply(this, arguments); } catch(e){ console.warn('[UX BALASAN skJenisChanged]', e); }
+      setTimeout(tuneLabel, 30);
+      return r;
+    };
+  });
+
+  /* PATCHED: tunggu submitSuratKeluar & generateDokumenKeluar tersedia */
+  window._whenReady('submitSuratKeluar', function(){
+    if (window.__balasanUxSubmit) return;
+    window.__balasanUxSubmit = true;
+    window.submitSuratKeluar = commitSuratKeluar;
+  });
+  window._whenReady('generateDokumenKeluar', function(){
+    if (window.__balasanUxGen) return;
+    window.__balasanUxGen = true;
+    window.generateDokumenKeluar = commitSuratKeluar;
+  });
+})();
+</script>
+
+<script>
+/* ============ GATE: Diterima hanya muncul setelah tahap tertanda (SAFE) ============ */
+(function(){
+  if (window.__gateTertanda) return;
+
+  /* PATCHED: tunggu renderEkspedisiInline tersedia */
+  window._whenReady('renderEkspedisiInline', function(orig){
+    if (window.__gateTertanda) return;
+    window.__gateTertanda = true;
+    window.renderEkspedisiInline = function(){
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[__gateTertanda]', e); }
+      setTimeout(function(){
+        var aEl = document.getElementById('ekspedisiAction');
+        if (!aEl) return;
+        var done = {}; (window.__expRiwayat || []).forEach(function(x){ done[x.tahap] = x; });
+        if (done['balasan'] && !done['tertanda'] && !done['selesai_tanpa_balasan']) {
+          var btns = aEl.querySelectorAll('button');
+          for (var i = 0; i < btns.length; i++) {
+            if (btns[i].textContent.indexOf('Diterima Pemohon') !== -1) btns[i].remove();
+          }
+        }
+      }, 70);
+      return r;
+    };
+  });
+})();
+</script>
+
+
+<script>
+/* ============ ARSIP KELUAR v2: chip agenda induk (SAFE) ============ */
+(function(){
+  if (window.__skArsipV2) return;
+
+  function skInjectAgenda(){
+    var cards = document.querySelectorAll('.sk-card');
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var badges = c.querySelector('.sk-badges');
+      if (!badges || badges.querySelector('.sk-agenda-chip')) continue;
+      var agenda = '-';
+      var link = c.querySelector('[onclick*="skGoInduk"]');
+      if (link) {
+        var m = link.getAttribute('onclick').match(/skGoInduk\('([^']+)'\)/);
+        if (m) {
+          var s = null;
+          for (var k = 0; k < (rawDataSurat || []).length; k++) if (rawDataSurat[k].idSurat === m[1]) { s = rawDataSurat[k]; break; }
+          agenda = s ? (s.agendaNomor || '?') : '?';
+        }
+      }
+      badges.insertAdjacentHTML('afterbegin',
+        '<span class="sk-chip-asal sk-agenda-chip" style="background:rgba(163,177,198,.18);color:var(--neo-text-sub);" title="No. agenda surat masuk induk"><i class="bi bi-inbox me-1"></i>Agenda ' + UIHelper.escapeHtml(agenda) + '</span>');
+    }
+  }
+
+  /* PATCHED: tunggu renderSuratKeluarList tersedia */
+  window._whenReady('renderSuratKeluarList', function(orig){
+    if (window.__skArsipV2) return;
+    window.__skArsipV2 = true;
+    window.renderSuratKeluarList = function(){
+      if (typeof rawDataSuratKeluar !== 'undefined' && rawDataSuratKeluar && rawDataSuratKeluar.length) {
+        rawDataSuratKeluar.sort(function(a,b){ return String(b.idKeluar||'').localeCompare(String(a.idKeluar||'')); });
+      }
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[__skArsipV2]', e); }
+      setTimeout(skInjectAgenda, 60);
+      return r;
+    };
+  });
+
+  /* PATCHED: tunggu refreshCoreData tersedia */
+  window._whenReady('refreshCoreData', function(origRefresh){
+    if (window.__skArsipV2Refresh) return;
+    window.__skArsipV2Refresh = true;
+    window.refreshCoreData = function(){
+      var r;
+      try { r = origRefresh.apply(this, arguments); } catch(e){ console.warn('[__skArsipV2 refreshCoreData]', e); }
+      if (typeof skReload === 'function') setTimeout(function(){ skReload(); }, 600);
+      return r;
+    };
+  });
+})();
+</script>
+
+<script>
+/* ============ Chip agenda induk: posisi paling kiri (SAFE) ============ */
+(function(){
+  if (window.__skAgendaLeft) return;
+
+  /* PATCHED: tunggu renderSuratKeluarList tersedia */
+  window._whenReady('renderSuratKeluarList', function(orig){
+    if (window.__skAgendaLeft) return;
+    window.__skAgendaLeft = true;
+    window.renderSuratKeluarList = function(){
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[__skAgendaLeft]', e); }
+      setTimeout(function(){
+        var cards = document.querySelectorAll('.sk-card');
+        for (var i = 0; i < cards.length; i++) {
+          var c = cards[i];
+          var olds = c.querySelectorAll('.sk-agenda-chip');
+          for (var o = 0; o < olds.length; o++) olds[o].remove();
+
+          var row1 = c.querySelector('.sk-row1');
+          if (!row1) continue;
+          var agenda = '-';
+          var link = c.querySelector('[onclick*="skGoInduk"]');
+          if (link) {
+            var m = link.getAttribute('onclick').match(/skGoInduk\('([^']+)'\)/);
+            if (m) {
+              var s = null;
+              for (var k = 0; k < (rawDataSurat || []).length; k++) if (rawDataSurat[k].idSurat === m[1]) { s = rawDataSurat[k]; break; }
+              agenda = s ? (s.agendaNomor || '?') : '?';
+            }
+          }
+          row1.insertAdjacentHTML('afterbegin',
+            '<span class="sk-chip-asal sk-agenda-chip" style="background:rgba(163,177,198,.18);color:var(--neo-text-sub);flex-shrink:0;" title="No. agenda surat masuk induk"><i class="bi bi-inbox me-1"></i>Agenda ' + UIHelper.escapeHtml(agenda) + '</span>');
+        }
+      }, 150);
+      return r;
+    };
+  });
+})();
+</script>
+
+<script>
+/* ============ Judul kartu keluar: nama kegiatan/deskripsi induk (SAFE) ============ */
+(function(){
+  if (window.__skJudul) return;
+
+  /* PATCHED: tunggu renderSuratKeluarList tersedia */
+  window._whenReady('renderSuratKeluarList', function(orig){
+    if (window.__skJudul) return;
+    window.__skJudul = true;
+    window.renderSuratKeluarList = function(){
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[__skJudul]', e); }
+      setTimeout(function(){
+        var cards = document.querySelectorAll('.sk-card');
+        for (var i = 0; i < cards.length; i++) {
+          var c = cards[i];
+          var bold = c.querySelector('.sk-perihal');
+          var link = c.querySelector('[onclick*="skGoInduk"]');
+          if (!bold || !link || bold.__judulDone) continue;
+          var m = link.getAttribute('onclick').match(/skGoInduk\('([^']+)'\)/);
+          if (!m) continue;
+          var s = null;
+          for (var k = 0; k < (rawDataSurat || []).length; k++) if (rawDataSurat[k].idSurat === m[1]) { s = rawDataSurat[k]; break; }
+          if (s && (s.deskripsi || '').trim()) {
+            var perihalLama = bold.textContent;
+            bold.textContent = s.deskripsi;
+            bold.title = 'Nama kegiatan / deskripsi surat masuk';
+            bold.__judulDone = true;
+            var meta = c.querySelector('.sk-meta');
+            if (meta && perihalLama && perihalLama !== s.deskripsi) {
+              meta.insertAdjacentHTML('beforeend', ' · <i class="bi bi-chat-left-text me-1"></i>' + UIHelper.escapeHtml(perihalLama));
+            }
+          }
+        }
+      }, 170);
+      return r;
+    };
+  });
+})();
+</script>
+
+
+<script>
+/* ============ B8: UI Kelola Transformasi Placeholder (INSTAN) ============ */
+var _trOriginalIds = [];
+function _trRowHtml(r){
+  r = r || {};
+  return '<div class="ph-row" data-id="'+_escSK(r.id_transform||'')+'" style="display:grid;grid-template-columns:1fr .8fr 1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(163,177,198,.15);">' +
+    '<input type="text" class="form-control tr-fk" list="trFkOptions" value="'+_escSK(r.field_key||'')+'" placeholder="KEY / fieldKey (mis. PENGIRIM, tglSurat)">' +
+    '<select class="form-control tr-tipe"><option value="teks"'+((r.tipe||'teks')==='teks'?' selected':'')+'>Ganti Teks</option><option value="tanggal"'+(r.tipe==='tanggal'?' selected':'')+'>Format Tanggal</option></select>' +
+    '<input type="text" class="form-control tr-cari" value="'+_escSK(r.cari||'')+'" placeholder="Teks dicari (mis. Wakil Dekan Sumber Daya dan Umum)">' +
+    '<input type="text" class="form-control tr-ganti" value="'+_escSK(r.tipe==='tanggal' ? (r.format||'') : (r.ganti||''))+'" placeholder="Pengganti / pola (dd-MM-yyyy)">' +
+    '<button type="button" class="schedule-remove-btn" onclick="this.closest(\'.ph-row\').remove()"><i class="bi bi-x"></i></button></div>';
+}
+function openModalKelolaTransformasiPH(){
+  _lcGet('transform', 'apiGetDaftarTransformasiPH', function(rows){
+    rows = Array.isArray(rows)?rows:[];
+    _trOriginalIds = rows.map(function(r){ return r.id_transform; }).filter(Boolean);
+    _lcGet('fieldKeys', 'apiGetAvailableFieldKeys', function(fk){
+      _availableFieldKeys = Array.isArray(fk)?fk:[];
+      _skOpenDialog('skTransform', '<div class="neo-swal-popup neo-dialog-card sk-wide"><div class="neo-swal-inner" style="align-items:stretch;">' +
+        '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-braces-asterisk"></i></div>' +
+        '<div class="neo-swal-title">Kelola Transformasi Placeholder</div>' +
+        '<div class="neo-swal-text" style="font-size:0.72rem;margin-bottom:10px;">Diterapkan saat dokumen dibuat. <b>Ganti Teks</b>: cari→ganti (mis. "Wakil Dekan Sumber Daya dan Umum"→"WD 2"). <b>Format Tanggal</b>: pola mis. <code>dd-MM-yyyy</code> / <code>EEEE, d MMMM yyyy</code>.</div>' +
+        '<datalist id="trFkOptions">' + _availableFieldKeys.map(function(k){return '<option value="'+k.key+'">'+k.label+'</option>';}).join('') + '</datalist>' +
+        '<div style="display:grid;grid-template-columns:1fr .8fr 1fr 1fr auto;gap:8px;font-size:0.68rem;font-weight:800;color:var(--neo-text-sub);text-transform:uppercase;"><span>FieldKey / KEY</span><span>Tipe</span><span>Cari</span><span>Ganti / Format</span><span></span></div>' +
+        '<div id="trBody" style="max-height:340px;overflow-y:auto;">'+(rows.length?rows.map(_trRowHtml).join(''):_trRowHtml())+'</div>' +
+        '<button type="button" class="dsc-btn-primary" style="margin-top:10px;margin-bottom:0;" onclick="tambahTransformasiRow()"><i class="bi bi-plus-lg me-1"></i> Tambah Aturan</button>' +
+      '</div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skClose(\'skTransform\')">Tutup</button><button type="button" class="neo-btn-confirm" onclick="simpanTransformasiAll()"><i class="bi bi-save me-1"></i> Simpan</button></div></div>', 9999);
+    });
+  });
+}
+function tambahTransformasiRow(){ document.getElementById('trBody').insertAdjacentHTML('beforeend', _trRowHtml()); }
+function simpanTransformasiAll(){
+  var rows = document.querySelectorAll('#trBody .ph-row');
+  var present = {}; var tasks = [];
+  rows.forEach(function(rw){
+    var fk = rw.querySelector('.tr-fk').value.trim(); if (!fk) return;
+    var tipe = rw.querySelector('.tr-tipe').value;
+    var ganti = rw.querySelector('.tr-ganti').value.trim();
+    var id = rw.getAttribute('data-id') || '';
+    if (id) present[id] = true;
+    tasks.push({ id:id, fieldKey:fk, tipe:tipe, cari: tipe==='teks'? rw.querySelector('.tr-cari').value.trim() : '', ganti: tipe==='teks'? ganti : '', format: tipe==='tanggal'? ganti : '' });
+  });
+  var removed = _trOriginalIds.filter(function(id){ return !present[id]; });
+  if (!tasks.length && !removed.length) { UIHelper.showToast('Tidak ada perubahan.', false); return; }
+  Loader.show('Menyimpan transformasi...');
+  var total = tasks.length + removed.length, done = 0;
+  var finish = function(){ done++; if (done===total){ Loader.hide(); _lcInvalidate(); UIHelper.showToast('Transformasi tersimpan.', true); _skCloseDialog('skTransform'); } };
+  tasks.forEach(function(t){ UIHelper.callApi('apiSimpanTransformasiPH', [t], finish, finish); });
+  removed.forEach(function(id){ UIHelper.callApi('apiHapusTransformasiPH', [{id:id}], finish, finish); });
+}
+
+
+/* ============ B9: field jadwal cerdas untuk surat keluar (balasan) (SAFE) ============ */
+function skSmartWaktu(wM, wS){
+  var f = function(v){ return String(v||'').replace(':','.'); };
+  var a = f(wM); if (!a) return '-';
+  var b = String(wS||'').trim().toLowerCase();
+  if (!b || b==='selesai' || b==='s.d. selesai') return a + ' WIB s.d. selesai';
+  return a + ' - ' + f(wS) + ' WIB';
+}
+function skSmartJadwal(jl){
+  var t=[],l=[],w=[];
+  (jl||[]).forEach(function(j){
+    if (j.tempatKegiatan) l.push(j.tempatKegiatan);
+    var d = j.tglMulai || j.tglKegiatan; if (d) t.push(d);
+    w.push(skSmartWaktu(j.waktuMulai, j.waktuSelesai));
+  });
+  return { tempatKegiatan: l.join(' ; ')||'-', tglKegiatan: t.join(' ; ')||'-', waktuKegiatan: w.join(' ; ')||'-' };
+}
+(function(){
+  /* PATCHED: tunggu skIndukData tersedia */
+  window._whenReady('skIndukData', function(origInduk){
+    if (window.__skIndukDataB9) return;
+    window.__skIndukDataB9 = true;
+    window.skIndukData = function(id){
+      var out;
+      try { out = origInduk(id); } catch(e){ console.warn('[B9 skIndukData]', e); out = {}; }
+      var s = null; for (var i=0;i<(rawDataSurat||[]).length;i++) if (rawDataSurat[i].idSurat===id) { s = rawDataSurat[i]; break; }
+      if (s && (s.jadwalList||[]).length) out = Object.assign(out, skSmartJadwal(s.jadwalList));
+      return out;
+    };
+  });
+})();
+
+/* ============ FLEKSIBILITAS: Revisi & Buka Kembali (SAFE) ============ */
+(function(){
+  if (window.__flexExp) return;
+
+  var _bkDlg = null;
+  window.openDialogBukaKembali = function(){
+    _bkDlg = document.createElement('div'); _bkDlg.className='neo-dialog'; _bkDlg.style.zIndex=9999;
+    _bkDlg.innerHTML = '<div class="neo-swal-popup neo-dialog-card sk-mid"><div class="neo-swal-inner" style="align-items:stretch;">' +
+      '<div class="neo-swal-icon" style="color:var(--neo-accent);"><i class="bi bi-arrow-counterclockwise"></i></div>' +
+      '<div class="neo-swal-title">Buka Kembali Ekspedisi?</div>' +
+      '<div class="neo-swal-text" style="font-size:0.72rem;">Status selesai dilepas agar tahap bisa direvisi (keputusan, balasan, tertanda, diterima). Riwayat lama tetap tersimpan sebagai jejak.</div>' +
+      '<label class="form-label">Alasan (wajib)</label><textarea id="bkAlasan" class="form-control" rows="2" placeholder="mis. keputusan berubah setelah rapat lanjutan..."></textarea>' +
+    '</div><div class="neo-dialog-actions"><button type="button" class="neo-btn-cancel" onclick="skCloseBk()">Batal</button>' +
+    '<button type="button" class="neo-btn-confirm" onclick="submitBukaKembali()"><i class="bi bi-unlock me-1"></i> Buka Kembali</button></div></div>';
+    document.body.appendChild(_bkDlg);
+  };
+  window.skCloseBk = function(){ if (_bkDlg && _bkDlg.parentNode) _bkDlg.parentNode.removeChild(_bkDlg); _bkDlg = null; };
+  window.submitBukaKembali = function(){
+    var alasan = (document.getElementById('bkAlasan').value||'').trim();
+    if (!alasan) { UIHelper.showToast('Alasan wajib diisi.', false); return; }
+    Loader.show('Membuka kembali ekspedisi...');
+    UIHelper.callApi('apiBukaKembaliEkspedisi', [{ idSurat: currentEkspedisiId, alasan: alasan, user: currentUser }], function(r){
+      Loader.hide(); skCloseBk();
+      UIHelper.showToast(r.message||'Ekspedisi dibuka.', true);
+      if (typeof _refreshEkspedisi === 'function') _refreshEkspedisi();
+    }, function(e){ Loader.hide(); UIHelper.showToast('Gagal: '+e,false); });
+  };
+
+  /* PATCHED: tunggu renderEkspedisiInline tersedia */
+  window._whenReady('renderEkspedisiInline', function(orig){
+    if (window.__flexExp) return;
+    window.__flexExp = true;
+    window.renderEkspedisiInline = function(riwayat){
+      var r2 = riwayat || [];
+      var buka=null, diterima=null, selesaiTB=null;
+      r2.forEach(function(x){ if(x.tahap==='dibuka_kembali') buka=x; if(x.tahap==='diterima') diterima=x; if(x.tahap==='selesai_tanpa_balasan') selesaiTB=x; });
+      var unlocked = buka && (
+        (!diterima && !selesaiTB) ||
+        (diterima && diterima.timestamp < buka.timestamp) ||
+        (!diterima && selesaiTB && selesaiTB.timestamp < buka.timestamp)
+      );
+      if (unlocked) r2 = r2.filter(function(x){ return x.tahap !== 'diterima' && x.tahap !== 'selesai_tanpa_balasan'; });
+      var r;
+      try { r = orig.call(this, r2); } catch(e){ console.warn('[__flexExp]', e); }
+      setTimeout(function(){
+        var aEl = document.getElementById('ekspedisiAction');
+        if (!aEl) return;
+        var done = {}; (window.__expRiwayat||[]).forEach(function(x){ done[x.tahap]=x; });
+        var selesaiAktif = done['diterima'] || done['selesai_tanpa_balasan'];
+        if (selesaiAktif && !aEl.querySelector('.sk-flex-btns')) {
+          aEl.insertAdjacentHTML('beforeend', '<div class="sk-flex-btns d-flex gap-2 mt-2" style="justify-content:flex-end;">' +
+            '<button type="button" class="btn-guest-action" style="padding:8px 16px;border-radius:999px;font-size:.75rem;color:var(--neo-accent);" onclick="editKeputusanDisp()"><i class="bi bi-pencil"></i> Revisi Keputusan</button>' +
+            '<button type="button" class="btn-guest-action" style="padding:8px 16px;border-radius:999px;font-size:.75rem;color:var(--neo-accent);" onclick="openDialogBukaKembali()"><i class="bi bi-arrow-counterclockwise"></i> Buka Kembali Ekspedisi</button></div>');
+        }
+      }, 80);
+      return r;
+    };
+  });
+})();
+</script>
+
+<script>
+/* ============ DIAGNOSTIK EKSPEDISI: toast error bila klik gagal (SAFE) ============ */
+(function(){
+  if (window.__expDiag) return;
+
+  /* PATCHED: tunggu openEkspedisi tersedia */
+  window._whenReady('openEkspedisi', function(origOpen){
+    if (window.__expDiagOpen) return;
+    window.__expDiagOpen = true;
+    window.openEkspedisi = function(id){
+      try { return origOpen.apply(this, arguments); }
+      catch(e) {
+        try { Loader.hide(); } catch(e2){}
+        UIHelper.showToast('ERR openEkspedisi: ' + e, false);
+      }
+    };
+  });
+
+  window.klikTimeline = function(id){
+    try {
+      if (typeof openEkspedisi === 'function') openEkspedisi(id);
+      else UIHelper.showToast('klikTimeline: openEkspedisi tidak ditemukan', false);
+    } catch(e) {
+      UIHelper.showToast('ERR klikTimeline: ' + e, false);
+    }
+  };
+
+  /* PATCHED: tunggu renderEkspedisiInline tersedia */
+  window._whenReady('renderEkspedisiInline', function(origRenderExp){
+    if (window.__expDiagRender) return;
+    window.__expDiagRender = true;
+    window.renderEkspedisiInline = function(riwayat){
+      try { return origRenderExp.apply(this, arguments); }
+      catch(e) {
+        try { Loader.hide(); } catch(e2){}
+        UIHelper.showToast('ERR renderEkspedisiInline: ' + e, false);
+      }
+    };
+  });
+})();
+</script>
+
+<script>
+/* ============ BOOT CEPAT: render instan dari cache (SAFE) ============ */
+(function(){
+  if (window.__bootFast) return; window.__bootFast = true;
+
+  function _applyBoot(d){
+    if (!d) return;
+    if (d.surat) rawDataSurat = d.surat;
+    if (d.kategori) kategoriList = d.kategori;
+    if (d.ekspedisi) ekspedisiMap = d.ekspedisi;
+    if (d.masterAset) masterAset = d.masterAset;
+    if (d.masterOrang) masterOrang = d.masterOrang;
+    if (d.suratKeluar) rawDataSuratKeluar = d.suratKeluar;
+    if (d.jenisKeluar) _skJenisCache = d.jenisKeluar;
+    if (d.agenda) _agendaList = d.agenda;
+    if (d.liburManual) _liburManual = d.liburManual;
+    _lcCache.tplKeluar = d.templates || [];
+    _lcCache.placeholder = d.placeholders || [];
+    _lcCache.fieldKeys = d.fieldKeys || [];
+    _lcCache.tplDisp = d.tplDisp || [];
+    _lcCache.transform = d.transforms || [];
+    try {
+      if (typeof renderDashboard === 'function') renderDashboard(rawDataSurat);
+      if (typeof renderSuratTable === 'function') renderSuratTable(rawDataSurat);
+      if (typeof renderSidebarAgenda === 'function') renderSidebarAgenda();
+      if (typeof renderConventionalCalendar === 'function') renderConventionalCalendar();
+      if (typeof renderSuratKeluarList === 'function') renderSuratKeluarList();
+    } catch (e) {}
+  }
+
+  function showSync(state){
+    var el = document.getElementById('lcSyncPill');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'lcSyncPill';
+      el.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:12000;background:var(--neo-surface);box-shadow:var(--neo-soft-raised);border-radius:999px;padding:6px 14px;font-size:.68rem;font-weight:800;color:var(--neo-text-sub);display:flex;gap:6px;align-items:center;transition:opacity .4s;';
+      document.body.appendChild(el);
+    }
+    el.style.opacity = '1';
+    el.innerHTML = state === 'sync'
+      ? '<span class="spinner-border spinner-border-sm" style="width:.7rem;height:.7rem;"></span> Menyinkronkan…'
+      : '<i class="bi bi-check-circle-fill" style="color:var(--neo-status-active);"></i> Tersinkron';
+    if (state === 'done') setTimeout(function(){ el.style.opacity = '0'; }, 1800);
+  }
+
+  window.loadAllData = function(){
+    var cached = null;
+    try { cached = JSON.parse(localStorage.getItem('lcBoot') || 'null'); } catch (e) {}
+    if (cached) _applyBoot(cached);
+    showSync('sync');
+    UIHelper.callApi('apiBoot', [], function(d){
+      try { localStorage.setItem('lcBoot', JSON.stringify(d)); } catch (e) {}
+      _applyBoot(d);
+      showSync('done');
+    }, function(){ showSync('done'); }, true);
+  };
+})();
+</script>
+
+<style>
+/* ===== Banner status ekspedisi ===== */
+.exp-banner{display:flex;gap:10px;align-items:flex-start;border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:.8rem;font-weight:700;}
+.exp-banner.batal{background:rgba(245,101,101,.12);color:var(--neo-status-inactive);border:1px solid rgba(245,101,101,.4);}
+/* ===== Jejak audit (kolaps) ===== */
+.exp-audit{margin-top:16px;border-radius:14px;background:var(--neo-surface);box-shadow:var(--neo-soft-flat);padding:10px 12px;}
+.exp-audit summary{cursor:pointer;font-size:.75rem;font-weight:800;color:var(--neo-accent);list-style:none;}
+.exp-audit summary::-webkit-details-marker{display:none;}
+.exp-audit-list{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+.exp-audit-item{font-size:.72rem;color:var(--neo-text-sub);border-left:3px solid var(--neo-accent);padding:6px 10px;background:rgba(102,126,234,.05);border-radius:0 10px 10px 0;}
+.exp-audit-item .t{font-weight:800;color:var(--neo-text-heading);}
+/* Matikan animasi details (anti-kedip) — aturan TERPISAH */
+details.exp-audit { animation:none !important; transition:none !important; }
+details.exp-audit > * { animation:none !important; transition:none !important; }
+details.exp-audit summary { animation:none !important; transition:none !important; }
+</style>
+
+<script>
+/* ============ EKSPEDISI: banner status + jejak audit (ANTI-KEDIP) ============ */
+(function(){
+  if (window.__expBannerAudit) return;
+
+  function tahapLabel(t){ return (window.TAHAP_LABEL && TAHAP_LABEL[t]) || t; }
+
+  function decorate(riwayat){
+    var tl = document.getElementById('ekspedisiTimeline');
+    if (!tl) return;
+    riwayat = riwayat || window.__expRiwayat || [];
+    var done = {}; riwayat.forEach(function(x){ done[x.tahap] = x; });
+    var s = null;
+    for (var i=0;i<(rawDataSurat||[]).length;i++) if (rawDataSurat[i].idSurat===currentEkspedisiId){ s=rawDataSurat[i]; break; }
+
+    /* 1) hapus milestone cabang dari jalur linier */
+    tl.querySelectorAll('.tl-item').forEach(function(item){
+      var j = item.querySelector('.tl-judul');
+      if (j && (j.textContent==='Dibatalkan' || j.textContent==='Diaktifkan kembali')) item.remove();
+    });
+
+    /* 2) banner batal — reuse node */
+    var batalNow = (s && s.status==='BATAL') || (!!done['dibatalkan'] && !done['diaktifkan_kembali']);
+    var oldB = document.getElementById('expBanner');
+    if (batalNow && done['dibatalkan']) {
+      var b = done['dibatalkan'];
+      var bannerHtml = '<i class="bi bi-x-octagon-fill"></i><div>Kegiatan dibatalkan · ' + UIHelper.escapeHtml(b.timestamp||'') + (b.catatan ? (' — ' + UIHelper.escapeHtml(b.catatan)) : '') + '</div>';
+      if (oldB) { if (oldB.innerHTML !== bannerHtml) oldB.innerHTML = bannerHtml; }
+      else tl.insertAdjacentHTML('beforebegin', '<div id="expBanner" class="exp-banner batal">' + bannerHtml + '</div>');
+    } else if (oldB) { oldB.remove(); }
+
+    /* 3) jejak audit — REUSE node <details>, JANGAN remove+reinsert (ini penyebab kedip) */
+    var oldA = document.getElementById('expAudit');
+    if (riwayat.length) {
+      var items = riwayat.map(function(r){
+        return '<div class="exp-audit-item"><span class="t">' + tahapLabel(r.tahap) + '</span> · ' +
+          UIHelper.escapeHtml(r.timestamp||'') + ' · ' + UIHelper.escapeHtml(r.aktor||'') +
+          (r.catatan ? (' — ' + UIHelper.escapeHtml(r.catatan)) : '') + '</div>';
+      }).join('');
+      var sumHtml = '<i class="bi bi-journal-text me-1"></i>Jejak Audit Lengkap (' + riwayat.length + ' peristiwa)';
+      if (oldA) {
+        var list = oldA.querySelector('.exp-audit-list');
+        if (list && list.innerHTML !== items) list.innerHTML = items;
+        var sum = oldA.querySelector('summary');
+        if (sum && sum.innerHTML !== sumHtml) sum.innerHTML = sumHtml;
+      } else {
+        tl.insertAdjacentHTML('afterend',
+          '<details id="expAudit" class="exp-audit"><summary>' + sumHtml + '</summary><div class="exp-audit-list">' + items + '</div></details>');
+      }
+    } else if (oldA) { oldA.remove(); }
+  }
+
+  window._whenReady('renderEkspedisiInline', function(orig){
+    if (window.__expBannerAudit) return;
+    window.__expBannerAudit = true;
+    window.renderEkspedisiInline = function(riwayat){
+      var r; try { r = orig.apply(this, arguments); } catch(e){}
+      setTimeout(function(){ decorate(riwayat); }, 90);
+      return r;
+    };
+  });
+})();
+</script>

@@ -1,6 +1,7 @@
 /**
  * ============================================================================
- * LETTERCORE - SURAT MASUK MODULE (Hardening + Status AKTIF/BATAL)
+ * LETTERCORE - SURAT MASUK MODULE (Fast Save + Always Enqueue Disposisi)
+ * FINAL: independen + integrasi SpaceCore (ruang + cek bentrok)
  * ============================================================================
  */
 var SuratMasuk = (function () {
@@ -12,7 +13,7 @@ var SuratMasuk = (function () {
     if (!s) {
       s = _ss().insertSheet(name);
       if (name === 'Surat_Masuk') s.appendRow(['ID Surat','No Agenda','Tgl Diterima','Tgl Surat','Pengirim','Tujuan','Nomor Surat','Perihal','Deskripsi','Penanggung Jawab','Dosen Pembimbing','PIC','Kontak','Keterangan','URL Scan','Created At','ID Disposisi','URL Disposisi','Kategori','Pemroses','Status']);
-      if (name === 'Detail_Jadwal') s.appendRow(['ID Jadwal','ID Surat','Tempat Kegiatan','Tgl Mulai','Tgl Selesai','Waktu Mulai','Waktu Selesai']);
+      if (name === 'Detail_Jadwal') s.appendRow(['ID Jadwal','ID Surat','Tempat Kegiatan','Tgl Mulai','Tgl Selesai','Waktu Mulai','Waktu Selesai','ID Ruang']);
       if (name === 'surat_masuk_custom') s.appendRow(['id_surat','field_key','nilai']);
       s.setFrozenRows(1);
     }
@@ -54,9 +55,16 @@ var SuratMasuk = (function () {
   function _generateIdSurat() { return 'SRT-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd-HHmmss'); }
   function _generateIdJadwal() { return 'JDW-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd') + '-' + Math.floor(100 + Math.random() * 900); }
 
+  function _enqueueDoc(idSurat) {
+    try {
+      var rows = Storage.read('doc_queue') || [];
+      for (var i = 0; i < rows.length; i++) if (String(rows[i].id_surat) === String(idSurat)) return;
+      Storage.save('doc_queue', { id_surat: idSurat, enqueued_at: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss'), attempts: 0 });
+    } catch (e) { console.error('[SuratMasuk] enqueue: ' + e); }
+  }
+
   return {
 
-    /* ================= READ ================= */
     getDaftarSurat: function () {
       var sheetSurat = _sheet('Surat_Masuk');
       var sheetJadwal = _sheet('Detail_Jadwal');
@@ -73,7 +81,7 @@ var SuratMasuk = (function () {
       }
 
       var hJ = _h(sheetJadwal);
-      var jI = { id: hJ.indexOf('ID Jadwal'), surat: hJ.indexOf('ID Surat'), tempat: hJ.indexOf('Tempat Kegiatan'), t1: hJ.indexOf('Tgl Mulai'), t2: hJ.indexOf('Tgl Selesai'), w1: hJ.indexOf('Waktu Mulai'), w2: hJ.indexOf('Waktu Selesai') };
+      var jI = { id: hJ.indexOf('ID Jadwal'), surat: hJ.indexOf('ID Surat'), tempat: hJ.indexOf('Tempat Kegiatan'), t1: hJ.indexOf('Tgl Mulai'), t2: hJ.indexOf('Tgl Selesai'), w1: hJ.indexOf('Waktu Mulai'), w2: hJ.indexOf('Waktu Selesai'), ruang: hJ.indexOf('ID Ruang') };
       var mapJadwal = {};
       var dJ = sheetJadwal.getDataRange().getDisplayValues();
       for (var j = 1; j < dJ.length; j++) {
@@ -87,7 +95,8 @@ var SuratMasuk = (function () {
           tglSelesai: DateUtil.formatIndo(dJ[j][jI.t2]),
           waktuMulai: DateUtil.formatTime(dJ[j][jI.w1]),
           waktuSelesai: DateUtil.formatTime(dJ[j][jI.w2]),
-          waktuKegiatan: (DateUtil.formatTime(dJ[j][jI.w1]) ? DateUtil.formatTime(dJ[j][jI.w1]) + ' - ' : '') + (DateUtil.formatTime(dJ[j][jI.w2]) || '-')
+          waktuKegiatan: (DateUtil.formatTime(dJ[j][jI.w1]) ? DateUtil.formatTime(dJ[j][jI.w1]) + ' - ' : '') + (DateUtil.formatTime(dJ[j][jI.w2]) || '-'),
+          idRuang: String(dJ[j][jI.ruang] || '')
         });
       }
 
@@ -101,35 +110,23 @@ var SuratMasuk = (function () {
         if (!id) continue;
         var cust = mapCustom[id] || { kategoriId: '', customFields: {} };
         result.push({
-          idSurat: id,
-          agendaNomor: String(r[idx.agenda] || ''),
-          tglDiterima: DateUtil.formatIndo(r[idx.t1]),
-          tglSurat: DateUtil.formatIndo(r[idx.t2]),
-          pengirim: String(r[idx.pengirim] || ''),
-          tujuan: String(r[idx.tujuan] || ''),
-          nomorSurat: String(r[idx.nomor] || ''),
-          perihal: String(r[idx.perihal] || ''),
-          deskripsi: String(r[idx.desk] || ''),
-          penanggungJawab: String(r[idx.pj] || ''),
-          dosenPembimbing: String(r[idx.dosen] || ''),
-          pic: String(r[idx.pic] || ''),
-          kontak: String(r[idx.kontak] || ''),
-          keterangan: String(r[idx.ket] || ''),
-          urlScan: String(r[idx.scan] || ''),
-          createdAt: String(r[idx.created] || ''),
-          idDisposisi: String(r[idx.dId] || ''),
-          urlDisposisi: String(r[idx.dUrl] || ''),
+          idSurat: id, agendaNomor: String(r[idx.agenda] || ''),
+          tglDiterima: DateUtil.formatIndo(r[idx.t1]), tglSurat: DateUtil.formatIndo(r[idx.t2]),
+          pengirim: String(r[idx.pengirim] || ''), tujuan: String(r[idx.tujuan] || ''),
+          nomorSurat: String(r[idx.nomor] || ''), perihal: String(r[idx.perihal] || ''),
+          deskripsi: String(r[idx.desk] || ''), penanggungJawab: String(r[idx.pj] || ''),
+          dosenPembimbing: String(r[idx.dosen] || ''), pic: String(r[idx.pic] || ''),
+          kontak: String(r[idx.kontak] || ''), keterangan: String(r[idx.ket] || ''),
+          urlScan: String(r[idx.scan] || ''), createdAt: String(r[idx.created] || ''),
+          idDisposisi: String(r[idx.dId] || ''), urlDisposisi: String(r[idx.dUrl] || ''),
           kategoriId: String(r[idx.kat] || '') || cust.kategoriId,
-          pemroses: String(r[idx.pros] || ''),
-          status: String(r[idx.status] || 'AKTIF'),
-          customFields: cust.customFields || {},
-          jadwalList: mapJadwal[id] || []
+          pemroses: String(r[idx.pros] || ''), status: String(r[idx.status] || 'AKTIF'),
+          customFields: cust.customFields || {}, jadwalList: mapJadwal[id] || []
         });
       }
       return result.reverse();
     },
 
-    /* ================= SAVE ================= */
     simpanSurat: function (data) {
       var lock = LockService.getScriptLock();
       try {
@@ -185,14 +182,12 @@ var SuratMasuk = (function () {
         var urlScan = data.existingUrlScan || '';
         if (data.fileScan && data.fileScan.base64) urlScan = Storage.saveFileToDrive(data.fileScan, idSurat);
 
-        var existingIdDisp = '', existingUrlDisp = '';
+        var existingUrlDisp = '';
         if (isEdit) {
-          var dOld = sheetSurat.getDataRange().getValues();
-          for (var x = 1; x < dOld.length; x++) {
-            if (_clean(dOld[x][cId]) === idSurat) {
-              if (!data.fileScan && dOld[x][hS.indexOf('URL Scan')]) urlScan = dOld[x][hS.indexOf('URL Scan')];
-              existingIdDisp = dOld[x][hS.indexOf('ID Disposisi')] || '';
-              existingUrlDisp = dOld[x][hS.indexOf('URL Disposisi')] || '';
+          for (var x = 1; x < raw.length; x++) {
+            if (_clean(raw[x][cId]) === idSurat) {
+              if (!data.fileScan && raw[x][hS.indexOf('URL Scan')]) urlScan = raw[x][hS.indexOf('URL Scan')];
+              existingUrlDisp = raw[x][hS.indexOf('URL Disposisi')] || '';
               break;
             }
           }
@@ -216,6 +211,7 @@ var SuratMasuk = (function () {
         record['Kategori'] = data.kategoriId || '';
         record['Pemroses'] = data.pemroses || '';
         if (!isEdit) record['Status'] = 'AKTIF';
+        if (isEdit && existingUrlDisp) record['URL Disposisi'] = existingUrlDisp;
         _upsert(sheetSurat, record, 'ID Surat');
 
         var hJ = _h(sheetJadwal);
@@ -223,7 +219,7 @@ var SuratMasuk = (function () {
         var dJ = sheetJadwal.getDataRange().getValues();
         for (var d = dJ.length - 1; d >= 1; d--) if (_clean(dJ[d][cJSurat]) === idSurat) sheetJadwal.deleteRow(d + 1);
         (data.jadwalList || []).forEach(function (jj) {
-          sheetJadwal.appendRow(["'" + _generateIdJadwal(), "'" + idSurat, jj.tempatKegiatan || '-', "'" + (jj.tglMulai || jj.tglKegiatan || ''), "'" + (jj.tglSelesai || jj.tglKegiatan || ''), "'" + (jj.waktuMulai || ''), "'" + (jj.waktuSelesai || '')]);
+          sheetJadwal.appendRow(["'" + _generateIdJadwal(), "'" + idSurat, jj.tempatKegiatan || '-', "'" + (jj.tglMulai || jj.tglKegiatan || ''), "'" + (jj.tglSelesai || jj.tglKegiatan || ''), "'" + (jj.waktuMulai || ''), "'" + (jj.waktuSelesai || ''), jj.idRuang || '']);
         });
 
         var sheetCustom = _sheet('surat_masuk_custom');
@@ -236,21 +232,10 @@ var SuratMasuk = (function () {
         }
 
         if (!isEdit) Ekspedisi.catat(idSurat, 'diinput', 'Surat diterima & diinput', 'No. agenda ' + agendaNomor, data.pemroses || 'Sistem');
-        if (typeof Disposisi !== 'undefined') {
-          var resDisp = Disposisi.generateOtomatis({
-            idSurat: idSurat, agendaNomor: agendaNomor, nomorSurat: data.nomorSurat, tglSurat: data.tglSurat, tglDiterima: data.tglDiterima,
-            pengirim: data.pengirim, tujuan: data.tujuan, perihal: data.perihal, deskripsi: data.deskripsi,
-            penanggungJawab: data.penanggungJawab, pic: data.pic, kontak: data.kontak, keterangan: data.keterangan,
-            jadwalList: data.jadwalList, existingIdDisposisi: existingIdDisp, existingUrlDisposisi: existingUrlDisp
-          });
-          if (resDisp && resDisp.docId) {
-            var rec2 = {}; rec2['ID Surat'] = "'" + idSurat; rec2['ID Disposisi'] = resDisp.docId; rec2['URL Disposisi'] = resDisp.docUrl;
-            _upsert(sheetSurat, rec2, 'ID Surat');
-            if (!isEdit || !existingIdDisp) Ekspedisi.catat(idSurat, 'disposisi_dibuat', 'Lembar disposisi dibuat', '', data.pemroses || 'Sistem');
-          }
-        }
 
-        return { success: true, message: isEdit ? 'Data diperbarui!' : 'Disimpan! No. agenda: ' + agendaNomor, agendaNomor: agendaNomor, idSurat: idSurat };
+        _enqueueDoc(idSurat);
+
+        return { success: true, message: isEdit ? 'Data diperbarui! Disposisi akan dibuat ulang otomatis.' : 'Disimpan! No. agenda: ' + agendaNomor + ' — disposisi sedang dibuat.', agendaNomor: agendaNomor, idSurat: idSurat };
       } catch (e) {
         return { success: false, message: e.toString() };
       } finally {
@@ -258,7 +243,6 @@ var SuratMasuk = (function () {
       }
     },
 
-    /* ================= STATUS: BATAL / AKTIFKAN ================= */
     batalkanSurat: function (idSurat, catatan, aktor) {
       try {
         idSurat = _clean(idSurat);
@@ -279,7 +263,6 @@ var SuratMasuk = (function () {
       } catch (e) { return { success: false, message: e.toString() }; }
     },
 
-    /* ================= RAPIKAN NOMOR LAMA ================= */
     rapikanAgenda: function () {
       try {
         var sheet = _sheet('Surat_Masuk');
@@ -297,7 +280,6 @@ var SuratMasuk = (function () {
       } catch (e) { return { success: false, message: e.toString() }; }
     },
 
-    /* ================= DELETE ================= */
     hapusSurat: function (idSurat) {
       try {
         idSurat = _clean(idSurat);
@@ -320,11 +302,23 @@ var SuratMasuk = (function () {
         var sheetCustom = _sheet('surat_masuk_custom');
         var dC = sheetCustom.getDataRange().getValues();
         for (var c = dC.length - 1; c >= 1; c--) if (_clean(dC[c][0]) === idSurat) sheetCustom.deleteRow(c + 1);
+
+        try {
+          var rowsKeluar = Storage.read('surat_keluar') || [];
+          for (var q2 = 0; q2 < rowsKeluar.length; q2++) {
+            if (String(rowsKeluar[q2].idSuratInduk) === idSurat) {
+              if (rowsKeluar[q2].urlDokumen) Storage.deleteFileFromDrive(rowsKeluar[q2].urlDokumen);
+              if (rowsKeluar[q2].urlScan) Storage.deleteFileFromDrive(rowsKeluar[q2].urlScan);
+              Storage.remove('surat_keluar', { idKeluar: rowsKeluar[q2].idKeluar });
+            }
+          }
+        } catch (e) { console.error('[SuratMasuk] cascade hapus surat keluar: ' + e); }
+
+        try { Storage.remove('doc_queue', { id_surat: idSurat }); } catch (e) {}
         return { success: true, message: 'Data berhasil dihapus.' };
       } catch (e) { return { success: false, message: e.toString() }; }
     },
 
-    /* ================= ENUM & MASTER ================= */
     getEnumList: function () {
       try {
         var data = this.getDaftarSurat();
@@ -382,6 +376,89 @@ var SuratMasuk = (function () {
       }
       out.sort(function (a, b) { return a.urutan - b.urutan; });
       return out;
+    },
+
+    /* ================= RUANG SPACECORE (baca via openById) ================= */
+    getDaftarRuangSpaceCore: function () {
+      try {
+        var spaceId = ConfigService.get('SPACE_CORE_SPREADSHEET_ID');
+        if (!spaceId) return [];
+        var ss = SpreadsheetApp.openById(spaceId);
+        var sh = ss.getSheetByName('sc_ruangan');
+        if (!sh) return [];
+        var data = sh.getDataRange().getValues();
+        var h = data[0];
+        var iId = h.indexOf('id'), iKode = h.indexOf('kode'), iNama = h.indexOf('nama'),
+            iJenis = h.indexOf('jenis'), iKat = h.indexOf('kategori_ruangan'), iStatus = h.indexOf('status');
+        var out = [];
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][iStatus]).toLowerCase() !== 'aktif') continue;
+          out.push({
+            id: String(data[i][iId] || ''),
+            kode: String(data[i][iKode] || ''),
+            nama: String(data[i][iNama] || ''),
+            jenis: String(data[i][iJenis] || ''),
+            kategori_ruangan: String(data[i][iKat] || '')
+          });
+        }
+        return out;
+      } catch (e) { console.error('[SuratMasuk.getDaftarRuangSpaceCore]', e); return []; }
+    },
+
+    /* ================= CEK BENTROK RUANG ================= */
+    cekBentrokRuang: function (ruangId, tglMulai, waktuMulai, waktuSelesai, excludeIdSurat) {
+      try {
+        if (!ruangId || !tglMulai) return { bentrok: false };
+        var ymdTarget = indoToYMD(tglMulai);
+        if (!ymdTarget) return { bentrok: false };
+
+        var sheetJadwal = _sheet('Detail_Jadwal');
+        var hJ = _h(sheetJadwal);
+        var iSurat = hJ.indexOf('ID Surat'), iRuang = hJ.indexOf('ID Ruang'),
+            iT1 = hJ.indexOf('Tgl Mulai'), iT2 = hJ.indexOf('Tgl Selesai'), iW1 = hJ.indexOf('Waktu Mulai'), iW2 = hJ.indexOf('Waktu Selesai');
+        var dJ = sheetJadwal.getDataRange().getValues();
+
+        var sheetSurat = _sheet('Surat_Masuk');
+        var hS = _h(sheetSurat);
+        var iSId = hS.indexOf('ID Surat'), iPerihal = hS.indexOf('Perihal'), iStatus = hS.indexOf('Status');
+        var dS = sheetSurat.getDataRange().getValues();
+        var suratMap = {};
+        for (var s = 1; s < dS.length; s++) {
+          var sid = _clean(dS[s][iSId]);
+          if (sid) suratMap[sid] = { perihal: String(dS[s][iPerihal] || ''), status: String(dS[s][iStatus] || 'AKTIF') };
+        }
+
+        var hm = function (v) { if (!v) return null; var m = String(v).match(/(\d{1,2})[.:](\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+        var wM1 = hm(waktuMulai), wS1 = hm(waktuSelesai);
+
+        for (var j = 1; j < dJ.length; j++) {
+          var rId = String(dJ[j][iRuang] || '').trim();
+          if (rId !== ruangId) continue;
+          var idSuratRow = _clean(dJ[j][iSurat]);
+          if (excludeIdSurat && idSuratRow === excludeIdSurat) continue;
+          var info = suratMap[idSuratRow];
+          if (!info || info.status === 'BATAL') continue;
+
+          var t1 = indoToYMD(dJ[j][iT1]), t2 = indoToYMD(dJ[j][iT2]) || t1;
+          if (!t1 || ymdTarget < t1 || ymdTarget > t2) continue;
+
+          var wM2 = hm(dJ[j][iW1]), wS2 = hm(dJ[j][iW2]);
+          if (wM1 !== null && wM2 !== null && wS1 !== null && wS2 !== null) {
+            if (wM1 >= wS2 || wS1 <= wM2) continue;
+          }
+
+          return {
+            bentrok: true,
+            suratId: idSuratRow,
+            perihal: info.perihal,
+            waktu: (DateUtil.formatTime(dJ[j][iW1]) || '') + ' - ' + (DateUtil.formatTime(dJ[j][iW2]) || 'selesai')
+          };
+        }
+        return { bentrok: false };
+      } catch (e) {
+        console.error('[SuratMasuk.cekBentrokRuang]', e);
+        return { bentrok: false };
+      }
     }
   };
 })();
